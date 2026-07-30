@@ -1,0 +1,49 @@
+{
+  "model_version": "v6.3",
+  "target": "Esito_ML",
+  "classes": {
+    "0": "failed",
+    "1": "amorphous",
+    "2": "crystalline"
+  },
+  "numeric_features": [
+    "Temperatura_C",
+    "Tempo_ore",
+    "mmol_Legante",
+    "mmol_Sale",
+    "Rapporto_LM",
+    "Volume solvente"
+  ],
+  "categorical_features": [
+    "Famiglia_Legante",
+    "Metallo",
+    "Sale_Metallico",
+    "Solvente",
+    "Additivo_Colinker"
+  ],
+  "feature_order": [
+    "Temperatura_C",
+    "Tempo_ore",
+    "mmol_Legante",
+    "mmol_Sale",
+    "Rapporto_LM",
+    "Volume solvente",
+    "Famiglia_Legante",
+    "Metallo",
+    "Sale_Metallico",
+    "Solvente",
+    "Additivo_Colinker"
+  ],
+  "grouping_variable": "Legante",
+  "selected_calibration_method": "sigmoid",
+  "base_model": {
+    "algorithm": "RandomForestClassifier",
+    "n_estimators": 180,
+    "max_depth": 12,
+    "min_samples_leaf": 3,
+    "max_features": "sqrt",
+    "class_weight": "balanced_subsample",
+    "random_state": 260730
+  },
+  "external_test_used": false
+}

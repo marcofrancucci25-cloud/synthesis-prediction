@@ -1,0 +1,16 @@
+{
+  "calibration_version": "v6.3",
+  "dataset": "Dataset_Sintesi_MOF_ML_Development_v6_0.csv",
+  "dataset_sha256": "c66dc8f714dec1aea1b9771b0e6eb22bc8f940b2123323132b285f0b01a3e363",
+  "outer_validation": "5-fold StratifiedGroupKFold grouped by ligand",
+  "calibration_validation": "3-fold grouped CV within each outer-training fold",
+  "methods_compared": [
+    "uncalibrated",
+    "sigmoid",
+    "isotonic"
+  ],
+  "selection_rule": "Mean ranks of log-loss, multiclass Brier, ECE, plus half-weight Macro-F1 rank",
+  "selected_method": "sigmoid",
+  "external_test_used": false,
+  "elapsed_seconds": 19.296603679656982
+}
