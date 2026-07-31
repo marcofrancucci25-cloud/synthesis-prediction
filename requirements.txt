@@ -1,5 +1,6 @@
-streamlit>=1.36,<2
+streamlit==1.49.1
 pandas==2.2.3
 numpy==2.3.5
 scikit-learn==1.8.0
-joblib==1.5.3
+joblib==1.5.2
+requests==2.32.5

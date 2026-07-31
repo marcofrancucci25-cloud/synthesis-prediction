@@ -1,17 +1,6 @@
-from src.assets import load_assets
-from src.engine import MOFSynthesisEngine
-
-def main():
-    assets = load_assets()
-    engine = MOFSynthesisEngine(assets)
-    db = assets.database
-    row = {f: db.iloc[0][f] for f in assets.schema["feature_order"]}
-    result = engine.predict(row)
-    assert len(result.probabilities) == 3
-    assert abs(float(result.probabilities.sum()) - 1.0) < 1e-6
-    optimized = engine.optimize(row, 5, True, True)
-    assert len(optimized) == 5
-    print("Smoke test superato.")
-
-if __name__ == "__main__":
-    main()
+from src.engine import predict,optimize
+v={'Legante':'terephthalic acid','Famiglia_Legante':'Carboxylate','Metallo':'Zn','Sale_Metallico':'Zn(NO3)2·6H2O','Solvente':'DMF','Additivo_Colinker':'Nessuno','Temperatura_C':120,'Tempo_ore':24,'mmol_Legante':0.1,'mmol_Sale':0.1,'Rapporto_LM':1,'Volume solvente':10,'Hydration_Number':6,'Oxidation_State':2}
+_,p,k=predict(v)
+assert abs(sum(p)-1)<1e-8
+assert len(optimize(v,3))==3
+print('Smoke test passed',p,k)

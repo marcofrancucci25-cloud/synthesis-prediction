@@ -1,96 +1,121 @@
 {
   "project": "MOF Synthesis Assistant",
-  "app_version": "1.0.0",
-  "model_version": "v6.3",
-  "engine_version": "v7.0",
-  "files": {
-    ".gitignore": {
-      "bytes": 85,
-      "sha256": "fe9c2742ed91bbc3e681765dd5e4de923a94702b56df48e6ea4ca84f4c695d8c"
+  "version": "8.0",
+  "files": [
+    {
+      "path": ".gitignore",
+      "size": 69,
+      "sha256": "7c04ab4c5b0c0f10679adde3cb1f54aadf1325111a8b2231c5a347085fc5bf1a"
     },
-    ".streamlit/config.toml": {
-      "bytes": 200,
-      "sha256": "04d7c2c48e0f00ff5d5f7700a6632392eb4fea33fc4c74d54b21391d5a646e84"
+    {
+      "path": ".streamlit/config.toml",
+      "size": 83,
+      "sha256": "671c2e312d77b8deecf755086ab2170fce241ce61819621a52588b8904ff07fd"
     },
-    "LICENSE": {
-      "bytes": 1072,
-      "sha256": "7e3588779da10d7f30eb7b4acd9754481af04c0c5a591375dc65f2fb13bdff50"
+    {
+      "path": "LICENSE",
+      "size": 250,
+      "sha256": "b31eb295670efd63177916c746e14a8ec6727bb258b24a3fe42fd35dfdee3863"
     },
-    "README.md": {
-      "bytes": 2975,
-      "sha256": "a7617c43942b2026681528ed735a756be6063473dd6764903b2780548ea00e93"
+    {
+      "path": "README.md",
+      "size": 1183,
+      "sha256": "5014a1792a8a413b2dcd0b8032a63149036039dae3c751c8dc398a4533256eff"
     },
-    "app.py": {
-      "bytes": 7805,
-      "sha256": "204a44c6af195f80464acd2d5ac20c21be6d8a724596a861043fdd884038df91"
+    {
+      "path": "app.py",
+      "size": 6366,
+      "sha256": "811ead4b88e1aecd2e5b41469918f12c569b93d3e0731755468f9c34215db607"
     },
-    "data/knowledge_database.csv": {
-      "bytes": 347192,
-      "sha256": "c66dc8f714dec1aea1b9771b0e6eb22bc8f940b2123323132b285f0b01a3e363"
+    {
+      "path": "data/knowledge_database.csv",
+      "size": 442130,
+      "sha256": "8d6046c790b098dce7a9a7b39dffeaf84143f1da75494ee6240a6efe3b0a2aec"
     },
-    "models/MOF_RandomForest_Calibrated_v6_3.joblib": {
-      "bytes": 7328163,
-      "sha256": "cfb7c9f7a4bd067bec947a57c7e5a7b609f0d8e6e170b91b49253834ba357604"
+    {
+      "path": "models/MOF_ChemAware_Ensemble_v8_0.joblib",
+      "size": 1593888,
+      "sha256": "48d097c78996e4fdd268d1aa39e645a8e2fb346255ced894225ba61e5aa1b752"
     },
-    "models/applicability_domain_v7_0.joblib": {
-      "bytes": 156068,
-      "sha256": "6ee1314f3c224f58b749aa6fa85ea221e7fcd878c1f63e555d47d150dcff1db1"
+    {
+      "path": "models/MOF_Hybrid_ChemAware_v8_0.joblib",
+      "size": 1944452,
+      "sha256": "d53d5ced142194d80d0cbec6e6a6d68b53682eda79cf59539118f0d38603ce2b"
     },
-    "models/feature_schema.json": {
-      "bytes": 1005,
-      "sha256": "4f5932f733f1bd40d286d53437c39ba60ccbb53159a238fc69b51af0cc917c85"
+    {
+      "path": "models/feature_schema_v8_0.json",
+      "size": 1930,
+      "sha256": "9e45422a42059bc8c2a166f3c93d391fe7cc384de88c9bfb65a25a36b884ca3a"
     },
-    "reports/calibration_metadata.json": {
-      "bytes": 619,
-      "sha256": "432e4786921d885d304a0f905ab0cfe6dc87d662d478b0a246dcdd1736e0296b"
+    {
+      "path": "models/metal_properties.json",
+      "size": 3824,
+      "sha256": "c1275ba41e588d3b295653a9719e746d56437aedda611c99e4740f181a90e79d"
     },
-    "reports/external_class_metrics.csv": {
-      "bytes": 221,
-      "sha256": "1aba043817e5468240ee32f33fc01eae6333cf677179b1c7d47a75847f8ccee7"
+    {
+      "path": "reports/SCIENTIFIC_UPDATE_v8_0.md",
+      "size": 1535,
+      "sha256": "481d44bfd7ba642fea6f33a6b4c4bc96b7d6508c7eefa0971ca5096d9725e6b5"
     },
-    "reports/external_confusion_matrix.csv": {
-      "bytes": 94,
-      "sha256": "b61afde88604afc508394380f5222284f1080ee5eb1af7ed9f844399b0703ce9"
+    {
+      "path": "reports/external_class_metrics_v8_0.csv",
+      "size": 462,
+      "sha256": "22e249246c705672e3010c734594d9abc8e37cab02574e0e2a13d20f3a582756"
     },
-    "reports/external_predictions.csv": {
-      "bytes": 24767,
-      "sha256": "36c56cbb7428c8e2688d18b4ea533fbd730772c8d980f2a8318bb5b8260aa89b"
+    {
+      "path": "reports/external_confusion_matrix_v8_0.csv",
+      "size": 68,
+      "sha256": "cfc7d3ddc734acadf4a3c3db8cd597904afbcd3fef970f20423b309aa7639e39"
     },
-    "reports/external_test_metrics.json": {
-      "bytes": 298,
-      "sha256": "4953f6840ae7ad5104210fcf73abe5318679f360d528a8420b6fab4a7ade7ca8"
+    {
+      "path": "reports/external_metrics_v8_0.json",
+      "size": 356,
+      "sha256": "e4d03968af24a6e280809624d2f5b5d69da73f50247ca0c060cba5873b99f519"
     },
-    "requirements.txt": {
-      "bytes": 80,
-      "sha256": "79a5a8de1131128f6394acf72bb3ce761d904b7cc98a7bb69a68135529bfcb7b"
+    {
+      "path": "reports/external_predictions_v8_0.csv",
+      "size": 33645,
+      "sha256": "b353322358712c37ef7f922fc540bc6735e8bc89b044560b0c28b34acc795326"
     },
-    "run_app_windows.bat": {
-      "bytes": 47,
-      "sha256": "d987386291d0b987214df1b8c599658afda8f34fd475e328818af4b8444633c9"
+    {
+      "path": "reports/grouped_cv_fold_metrics_v8_0.csv",
+      "size": 619,
+      "sha256": "baf0bf82f52c7251e2700aa1a8dfb4436accee099951df8178949eaad5c98501"
     },
-    "src/__init__.py": {
-      "bytes": 0,
+    {
+      "path": "reports/grouped_cv_summary_v8_0.csv",
+      "size": 501,
+      "sha256": "332f55de6cf72d659c99f5810806f7e81812a2500338dd3c1e202cad071e6551"
+    },
+    {
+      "path": "requirements.txt",
+      "size": 96,
+      "sha256": "c416014901e32163e0d1e7eca2fb796bfb88787c5b9dbbf120376ef56abdc9ad"
+    },
+    {
+      "path": "src/__init__.py",
+      "size": 0,
       "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
     },
-    "src/assets.py": {
-      "bytes": 2000,
-      "sha256": "f465b8aef782603864cb758fc311a90b77a4772596b9f90a98ea2f7e7fb92a77"
+    {
+      "path": "src/chem.py",
+      "size": 4373,
+      "sha256": "6c6549cc76487aa42d465355395db632c4c0f47ac7478cf338fb04072e668cf6"
     },
-    "src/constants.py": {
-      "bytes": 342,
-      "sha256": "cb789ce2334ec246fa81e30dd9461759cb240b2601e79ec0a8e662cb5952d06b"
+    {
+      "path": "src/engine.py",
+      "size": 3212,
+      "sha256": "54b422c5ba66b010c8a2fce3e986f0a38b191bdc31ad7aefa973ba92fc530dfc"
     },
-    "src/engine.py": {
-      "bytes": 5706,
-      "sha256": "b5b5f281d547c83fae6dc4a980ecac5ae5d272126c3db496494038c9d0b88390"
+    {
+      "path": "src/pubchem.py",
+      "size": 459,
+      "sha256": "44e61c72aa7dae9015949fba697941c22183f7e4c6874ce50ddd0c0660e01b46"
     },
-    "src/ui.py": {
-      "bytes": 2090,
-      "sha256": "c3bb79d64b7f834694498fc1ab9aa890b6eeee25687d97244191d133720c94b5"
-    },
-    "tests/smoke_test.py": {
-      "bytes": 545,
-      "sha256": "9001d7cf2d9665e68110168e1cdf5c27f65d41b898e91693d79d09327f341c82"
+    {
+      "path": "tests/smoke_test.py",
+      "size": 454,
+      "sha256": "49e28195f0e93afc22e414efb55ebf811f470a38f600f2d19e5552845b256163"
     }
-  }
+  ]
 }

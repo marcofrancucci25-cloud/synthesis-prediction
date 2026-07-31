@@ -1,111 +1,60 @@
-from __future__ import annotations
-import itertools
-from dataclasses import dataclass
-from typing import Any
-import numpy as np
-import pandas as pd
+from pathlib import Path
+import json, joblib, numpy as np, pandas as pd
+from .chem import build_row
+ROOT=Path(__file__).resolve().parents[1]
+ART=joblib.load(ROOT/'models/MOF_ChemAware_Ensemble_v8_0.joblib')
+SCHEMA=json.loads((ROOT/'models/feature_schema_v8_0.json').read_text())
+DB=pd.read_csv(ROOT/'data/knowledge_database.csv')
+FEATURES=ART['features']
 
-@dataclass
-class PredictionResult:
-    predicted_class: int
-    probabilities: np.ndarray
-    distance: float
-    domain_label: str
-    domain_score: float
-    unseen_categories: list[str]
+def predict(values):
+    x=build_row(values)
+    for c in FEATURES:
+        if c not in x: x[c]=np.nan
+    x=x[FEATURES]
+    p=ART['weights'][0]*ART['rf_model'].predict_proba(x)+ART['weights'][1]*ART['ligand_text_model'].predict_proba(x)
+    return x, p[0], int(np.argmax(p[0]))
 
-class MOFSynthesisEngine:
-    def __init__(self, assets: Any):
-        self.model = assets.model
-        self.ad = assets.applicability
-        self.schema = assets.schema
-        self.db = assets.database
-        self.features = self.schema["feature_order"]
-        self.numeric = self.schema["numeric_features"]
-        self.categorical = self.schema["categorical_features"]
-        self.category_sets = {c: set(self.db[c].dropna().astype(str)) for c in self.categorical}
+def applicability(values):
+    ligand=str(values.get('Legante','')).strip().lower(); metal=str(values.get('Metallo','')); salt=str(values.get('Sale_Metallico',''))
+    seen_lig=ligand in set(DB['Legante'].astype(str).str.lower())
+    seen_metal=metal in set(DB['Metallo'].astype(str))
+    seen_salt=salt in set(DB['Sale_Metallico'].astype(str))
+    score=0.50*seen_lig+0.30*seen_metal+0.20*seen_salt
+    if score>=0.8: label='Inside domain'
+    elif score>=0.3: label='Intermediate / partial extrapolation'
+    else: label='Outside domain'
+    return {'score':float(score),'label':label,'ligand_seen':seen_lig,'metal_seen':seen_metal,'salt_seen':seen_salt}
 
-    def options(self, column: str) -> list[str]:
-        return sorted(self.db[column].dropna().astype(str).unique().tolist())
+def similar(values,n=15):
+    d=DB.copy(); metal=str(values.get('Metallo','')); fam=str(values.get('Famiglia_Legante',''))
+    d['_score']=0
+    d.loc[d['Metallo'].astype(str)==metal,'_score']+=3
+    d.loc[d['Famiglia_Legante'].astype(str)==fam,'_score']+=2
+    for c,w in [('Temperatura_C',1),('Tempo_ore',1),('Rapporto_LM',1)]:
+        try:
+            scale=max(float(d[c].std()),1); val=float(values.get(c,np.nan)); d['_score']+=np.exp(-abs(pd.to_numeric(d[c],errors='coerce')-val)/scale)*w
+        except: pass
+    return d.sort_values('_score',ascending=False).head(n)
 
-    def numeric_default(self, column: str) -> float:
-        return float(pd.to_numeric(self.db[column], errors="coerce").median())
-
-    def normalize_row(self, row: dict) -> pd.DataFrame:
-        return pd.DataFrame([{f: row.get(f, np.nan) for f in self.features}])
-
-    def probabilities(self, row: dict) -> np.ndarray:
-        return self.model.predict_proba(self.normalize_row(row))[0]
-
-    def assess_domain(self, row: dict) -> tuple[float, str, float, list[str]]:
-        frame = self.normalize_row(row)
-        transformed = self.ad["preprocessor"].transform(frame)
-        distance = float(self.ad["neighbors"].kneighbors(transformed, n_neighbors=5)[0].mean())
-        q75, q95 = float(self.ad["q75"]), float(self.ad["q95"])
-        if distance <= q75:
-            label, score = "Dentro il dominio", 1.0
-        elif distance <= q95:
-            label = "Zona intermedia"
-            score = max(0.55, 1 - (distance-q75)/(q95-q75+1e-9)*0.45)
-        else:
-            label = "Fuori dominio"
-            score = max(0.15, q95/max(distance, 1e-9)*0.5)
-        unseen = [c for c in self.categorical if str(row.get(c, "")) not in self.category_sets[c]]
-        if unseen:
-            label, score = "Fuori dominio", min(score, 0.35)
-        return distance, label, float(score), unseen
-
-    def predict(self, row: dict) -> PredictionResult:
-        p = self.probabilities(row)
-        distance, label, score, unseen = self.assess_domain(row)
-        return PredictionResult(int(np.argmax(p)), p, distance, label, score, unseen)
-
-    def local_sensitivity(self, row: dict) -> pd.DataFrame:
-        baseline = self.probabilities(row)[2]
-        reference = {
-            f: self.numeric_default(f) if f in self.numeric else self.db[f].mode(dropna=True).iloc[0]
-            for f in self.features
-        }
-        rows = []
-        for feature in self.features:
-            altered = row.copy(); altered[feature] = reference[feature]
-            rows.append({
-                "Feature": feature,
-                "Valore inserito": row[feature],
-                "Riferimento database": reference[feature],
-                "Variazione P(cristallino)": baseline - self.probabilities(altered)[2],
-            })
-        return pd.DataFrame(rows).sort_values(
-            "Variazione P(cristallino)", key=lambda s: s.abs(), ascending=False
-        )
-
-    def knowledge_filter(self, ligand: str, family: str, metal: str) -> pd.DataFrame:
-        sub = self.db.copy()
-        if ligand != "Tutti": sub = sub[sub["Legante"].astype(str) == ligand]
-        if family != "Tutte": sub = sub[sub["Famiglia_Legante"].astype(str) == family]
-        if metal != "Tutti": sub = sub[sub["Metallo"].astype(str) == metal]
-        return sub
-
-    def optimize(self, base: dict, n: int, vary_solvent: bool, vary_additive: bool) -> pd.DataFrame:
-        family_db = self.db[(self.db["Famiglia_Legante"].astype(str) == str(base["Famiglia_Legante"])) &
-                            (self.db["Metallo"].astype(str) == str(base["Metallo"]))]
-        if len(family_db) < 5:
-            family_db = self.db[self.db["Famiglia_Legante"].astype(str) == str(base["Famiglia_Legante"])]
-        temps = np.unique(np.clip([base["Temperatura_C"] + x for x in (-20,-10,0,10,20)], 20, 250))
-        times = np.unique(np.clip([base["Tempo_ore"] * x for x in (0.5,1,1.5,2)], 0.25, 336))
-        ratios = np.unique(np.clip([base["Rapporto_LM"] * x for x in (0.67,1,1.5)], 0.1, 10))
-        solvents = family_db["Solvente"].value_counts().head(6).index.tolist() if vary_solvent and len(family_db) else [base["Solvente"]]
-        additives = family_db["Additivo_Colinker"].value_counts().head(5).index.tolist() if vary_additive and len(family_db) else [base["Additivo_Colinker"]]
-        candidates = []
-        for temp, hours, ratio, solvent, additive in itertools.product(temps, times, ratios, solvents, additives):
-            row = base.copy()
-            row.update({"Temperatura_C": float(temp), "Tempo_ore": float(hours), "Rapporto_LM": float(ratio),
-                        "Solvente": str(solvent), "Additivo_Colinker": str(additive)})
-            p = self.probabilities(row)
-            distance, domain, ad_score, unseen = self.assess_domain(row)
-            candidates.append({**row, "P_fallimento": p[0], "P_amorfo": p[1], "P_cristallino": p[2],
-                               "AD_score": ad_score, "AD_distance": distance, "Dominio": domain,
-                               "Categorie_non_viste": ", ".join(unseen),
-                               "Ranking_score": p[2] * (0.65 + 0.35 * ad_score)})
-        return (pd.DataFrame(candidates).drop_duplicates(subset=self.features)
-                .sort_values(["Ranking_score", "P_cristallino"], ascending=False).head(n).reset_index(drop=True))
+def optimize(values,top_n=10):
+    base=dict(values); temps=sorted(set([max(20,float(base['Temperatura_C'])+x) for x in (-40,-20,0,20,40)]))
+    times=sorted(set([max(0.5,float(base['Tempo_ore'])*x) for x in (0.5,1,2)]))
+    ratios=sorted(set([max(0.1,float(base['Rapporto_LM'])+x) for x in (-1,-0.5,0,0.5,1)]))
+    solvents=list(DB['Solvente'].dropna().astype(str).value_counts().head(8).index)
+    raw=[]
+    for t in temps:
+      for h in times:
+       for r in ratios:
+        for solv in solvents:
+         v=dict(base); v.update({'Temperatura_C':t,'Tempo_ore':h,'Rapporto_LM':r,'Solvente':solv}); raw.append(v)
+    engineered=pd.concat([build_row(v) for v in raw],ignore_index=True)
+    for c in FEATURES:
+        if c not in engineered: engineered[c]=np.nan
+    x=engineered[FEATURES]
+    probs=ART['weights'][0]*ART['rf_model'].predict_proba(x)+ART['weights'][1]*ART['ligand_text_model'].predict_proba(x)
+    ad=applicability(base); ad_score=ad['score']
+    out=pd.DataFrame(raw)
+    out['P_Failed']=probs[:,0]; out['P_Amorphous']=probs[:,1]; out['P_Crystalline']=probs[:,2]
+    out['AD_score']=ad_score; out['Optimized_score']=out['P_Crystalline']*(0.65+0.35*ad_score)
+    return out.sort_values(['Optimized_score','P_Crystalline'],ascending=False).drop_duplicates(['Temperatura_C','Tempo_ore','Rapporto_LM','Solvente']).head(top_n)
