@@ -1,8 +1,8 @@
-# MOF Synthesis Assistant v9.1
+# MOF Synthesis Assistant v9.2
 
 Interactive Streamlit application for literature-aware MOF synthesis prediction and condition prioritization.
 
-## New in v9.1
+## New in v9.2
 
 - ligand input by name, abbreviation, CAS number, molecular formula or SMILES;
 - robust resolver chain: local RDKit → MOF aliases → NCI Cactus → PubChem;
@@ -31,8 +31,19 @@ streamlit run app.py
 
 ## Scientific boundary
 
-The v9.1 release improves chemical identity resolution but retains the frozen v8.0 predictive core. Successful structure resolution does not imply that a ligand is inside the model applicability domain.
+The v9.2 release improves chemical identity resolution but retains the frozen v8.0 predictive core. Successful structure resolution does not imply that a ligand is inside the model applicability domain.
 
 
-## v9.1 interface workflow
+## v9.2 interface workflow
 Prediction and optimization are now integrated in one page. After a prediction, the app displays a traffic-light assessment, a local sensitivity explanation of favorable and limiting experimental parameters, and a contextual button for generating improved conditions while keeping the selected metal–ligand identity fixed.
+
+
+## Tavily literature search
+
+The sidebar includes a recent-literature search restricted to selected scientific domains. Configure the API key in Streamlit Cloud under **App settings → Secrets**:
+
+```toml
+TAVILY_API_KEY = "tvly-your-key"
+```
+
+The application does not store keys entered in the temporary local password field. Search results remain retrieval outputs and should be checked against the original publisher record.

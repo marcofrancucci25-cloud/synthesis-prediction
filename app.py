@@ -5,11 +5,12 @@ import streamlit as st
 from src.chem import METALS, FAMILIES, COUNTERIONS, infer_family, precursor_formula, parse_salt
 from src.engine import predict, applicability, similar, optimize, explain_prediction, DB
 from src.resolver import resolve_ligand
+from src.literature import search_literature
 
 st.set_page_config(page_title="MOF Synthesis Assistant", page_icon="🧪", layout="wide")
-st.title("🧪 MOF Synthesis Assistant v9.1")
-st.caption("Prediction, intuitive condition diagnosis and contextual synthesis optimization")
-page = st.sidebar.radio("Module", ["Predict synthesis", "Knowledge engine", "Model validation", "About"])
+st.title("🧪 MOF Synthesis Assistant v9.2")
+st.caption("Prediction, intuitive condition diagnosis, contextual optimization and recent literature search")
+page = st.sidebar.radio("Module", ["Predict synthesis", "Literature search", "Model validation", "About"])
 
 
 def _resolved_identity(prefix, typed_ligand):
@@ -130,17 +131,76 @@ if page=="Predict synthesis":
         st.session_state['prediction_result']={'values':values,'probabilities':probabilities,'predicted':predicted,'ad':ad,'influence':influence}
         st.session_state.pop('optimization_results',None)
     if 'prediction_result' in st.session_state: render_prediction(st.session_state['prediction_result'])
-elif page=="Knowledge engine":
-    st.subheader("Search the experimental database"); q=st.text_input("Search ligand, metal, salt, solvent or family"); d=DB.copy()
-    if q: d=d[d.astype(str).apply(lambda col:col.str.contains(q,case=False,na=False)).any(axis=1)]
-    st.write(f"{len(d)} records"); st.dataframe(d,use_container_width=True,height=520); st.download_button("Download filtered CSV",d.to_csv(index=False).encode(),"knowledge_results.csv","text/csv")
+elif page=="Literature search":
+    st.subheader("🔎 Recent scientific literature")
+    st.write("Search recent articles from selected scholarly publishers and repositories using Tavily.")
+    st.caption("Results are restricted to scientific domains, but relevance and bibliographic details should still be verified on the publisher page.")
+
+    configured_key = None
+    try:
+        configured_key = st.secrets.get("TAVILY_API_KEY")
+    except Exception:
+        configured_key = None
+
+    with st.form("literature_search_form"):
+        query = st.text_input(
+            "Keyword or research question",
+            placeholder="e.g. bipyrazole MOF oxygen evolution reaction",
+        )
+        c1, c2, c3 = st.columns(3)
+        years_back = c1.selectbox("Publication window", [1, 2, 3, 5, 10], index=3, format_func=lambda x: f"Last {x} year" if x == 1 else f"Last {x} years")
+        max_results = c2.slider("Number of articles", 5, 20, 10)
+        mof_focus = c3.checkbox("Add MOF context", value=True, help="Adds MOF and synthesis terms to improve materials-science relevance.")
+        local_key = ""
+        if not configured_key:
+            local_key = st.text_input("Tavily API key", type="password", help="For Streamlit Cloud, save it as TAVILY_API_KEY in App settings → Secrets.")
+        submitted = st.form_submit_button("Search literature", type="primary")
+
+    if submitted:
+        if not query.strip():
+            st.warning("Enter a keyword or research question.")
+        else:
+            with st.spinner("Searching recent scholarly sources..."):
+                try:
+                    results = search_literature(
+                        query,
+                        years_back=years_back,
+                        max_results=max_results,
+                        api_key=configured_key or local_key or None,
+                        mof_focus=mof_focus,
+                    )
+                    st.session_state["literature_results"] = results
+                    st.session_state["literature_query"] = query
+                except Exception as exc:
+                    st.error(f"Literature search failed: {exc}")
+
+    results = st.session_state.get("literature_results", [])
+    if results:
+        st.success(f"Found {len(results)} selected results for: {st.session_state.get('literature_query', '')}")
+        for i, article in enumerate(results, start=1):
+            date_text = article.get("published_date") or "Date not supplied by source"
+            st.markdown(f"### {i}. [{article['title']}]({article['url']})")
+            st.caption(f"{article['source']} · {date_text} · Tavily relevance {article['score']:.2f}")
+            if article.get("doi"):
+                st.code(article["doi"], language=None)
+            if article.get("summary"):
+                st.write(article["summary"])
+            st.divider()
+
+        export = pd.DataFrame(results)
+        st.download_button(
+            "Download literature results (CSV)",
+            export.to_csv(index=False).encode("utf-8"),
+            "mof_literature_results.csv",
+            "text/csv",
+        )
 elif page=="Model validation":
     root=Path(__file__).parent; metrics=json.loads((root/"reports/external_metrics_v8_0.json").read_text())
     st.subheader("Ligand-group external test of the current predictive core")
-    st.info("v9.1 updates the user workflow and local sensitivity display. The frozen predictive core and external validation remain v8.0.")
+    st.info("v9.2 updates the user workflow and adds a curated Tavily literature-search interface and local sensitivity display. The frozen predictive core and external validation remain v8.0.")
     st.json(metrics); st.dataframe(pd.read_csv(root/"reports/external_class_metrics_v8_0.csv"),use_container_width=True); st.dataframe(pd.read_csv(root/"reports/external_confusion_matrix_v8_0.csv",index_col=0),use_container_width=True)
 else:
     st.markdown("""### Scope and scientific limitations
-Version 9.1 integrates prediction and optimization into one workflow and replaces the default technical explanation with an intuitive local-sensitivity summary. The optimizer keeps the selected metal–ligand identity fixed and varies only experimental conditions.
+Version 9.2 integrates prediction and optimization into one workflow and replaces the default technical explanation with an intuitive local-sensitivity summary. The optimizer keeps the selected metal–ligand identity fixed and varies only experimental conditions.
 
-The explanation is **model-based and descriptive, not causal**. Optimized conditions are hypotheses for experimental prioritization, not guarantees of MOF formation. The predictive core remains the frozen v8.0 ensemble; this interface update does not constitute a new external validation.""")
+The explanation is **model-based and descriptive, not causal**. Optimized conditions are hypotheses for experimental prioritization, not guarantees of MOF formation. The predictive core remains the frozen v8.0 ensemble; the literature module is a retrieval aid and this interface update does not constitute a new external validation.""")
