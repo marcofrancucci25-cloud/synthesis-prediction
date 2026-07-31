@@ -7,8 +7,14 @@ from src.engine import predict, applicability, similar, optimize, explain_predic
 from src.resolver import resolve_ligand
 from src.literature import search_literature
 
+# Temporary Tavily deployment key. Replace this value when rotating the key.
+TAVILY_DEPLOYMENT_KEY = "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"
+
+APP_VERSION = "9.4.1"
+
 st.set_page_config(page_title="MOF Synthesis Assistant", page_icon="🧪", layout="wide")
 st.title("🧪 MOF Synthesis Assistant v9.2")
+st.caption("Version 9.4.1 · Literature interface without user API-key field")
 st.caption("Prediction, intuitive condition diagnosis, contextual optimization and recent literature search")
 page = st.sidebar.radio("Module", ["Predict synthesis", "Literature search", "Model validation", "About"])
 
@@ -136,12 +142,6 @@ elif page=="Literature search":
     st.write("Search recent articles from selected scholarly publishers and repositories using Tavily.")
     st.caption("Results are restricted to scientific domains, but relevance and bibliographic details should still be verified on the publisher page.")
 
-    configured_key = None
-    try:
-        configured_key = st.secrets.get("TAVILY_API_KEY")
-    except Exception:
-        configured_key = None
-
     with st.form("literature_search_form"):
         query = st.text_input(
             "Keyword or research question",
@@ -151,9 +151,6 @@ elif page=="Literature search":
         years_back = c1.selectbox("Publication window", [1, 2, 3, 5, 10], index=3, format_func=lambda x: f"Last {x} year" if x == 1 else f"Last {x} years")
         max_results = c2.slider("Number of articles", 5, 20, 10)
         mof_focus = c3.checkbox("Add MOF context", value=True, help="Adds MOF and synthesis terms to improve materials-science relevance.")
-        local_key = ""
-        if not configured_key:
-            local_key = st.text_input("Tavily API key", type="password", help="For Streamlit Cloud, save it as TAVILY_API_KEY in App settings → Secrets.")
         submitted = st.form_submit_button("Search literature", type="primary")
 
     if submitted:
@@ -166,8 +163,8 @@ elif page=="Literature search":
                         query,
                         years_back=years_back,
                         max_results=max_results,
-                        api_key=configured_key or local_key or None,
                         mof_focus=mof_focus,
+                        api_key=TAVILY_DEPLOYMENT_KEY,
                     )
                     st.session_state["literature_results"] = results
                     st.session_state["literature_query"] = query
@@ -197,10 +194,10 @@ elif page=="Literature search":
 elif page=="Model validation":
     root=Path(__file__).parent; metrics=json.loads((root/"reports/external_metrics_v8_0.json").read_text())
     st.subheader("Ligand-group external test of the current predictive core")
-    st.info("v9.2 updates the user workflow and adds a curated Tavily literature-search interface and local sensitivity display. The frozen predictive core and external validation remain v8.0.")
+    st.info("v9.4 updates the user workflow and adds a curated Tavily literature-search interface and local sensitivity display. The frozen predictive core and external validation remain v8.0.")
     st.json(metrics); st.dataframe(pd.read_csv(root/"reports/external_class_metrics_v8_0.csv"),use_container_width=True); st.dataframe(pd.read_csv(root/"reports/external_confusion_matrix_v8_0.csv",index_col=0),use_container_width=True)
 else:
     st.markdown("""### Scope and scientific limitations
-Version 9.2 integrates prediction and optimization into one workflow and replaces the default technical explanation with an intuitive local-sensitivity summary. The optimizer keeps the selected metal–ligand identity fixed and varies only experimental conditions.
+Version 9.4 integrates prediction and optimization into one workflow and replaces the default technical explanation with an intuitive local-sensitivity summary. The optimizer keeps the selected metal–ligand identity fixed and varies only experimental conditions.
 
 The explanation is **model-based and descriptive, not causal**. Optimized conditions are hypotheses for experimental prioritization, not guarantees of MOF formation. The predictive core remains the frozen v8.0 ensemble; the literature module is a retrieval aid and this interface update does not constitute a new external validation.""")

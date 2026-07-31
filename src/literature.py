@@ -6,7 +6,6 @@ must be critically evaluated by the user.
 """
 from __future__ import annotations
 
-import os
 import re
 from datetime import date, timedelta
 from typing import Any
@@ -33,6 +32,9 @@ TRUSTED_DOMAINS = [
     "cell.com",
 ]
 
+# Temporary deployment key. Replace this single value when rotating the Tavily key.
+TAVILY_API_KEY = "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"
+
 DOI_RE = re.compile(r"\b10\.\d{4,9}/[-._;()/:A-Z0-9]+\b", re.I)
 
 
@@ -46,8 +48,12 @@ def _doi(text: str) -> str | None:
     return match.group(0).rstrip(".,;)") if match else None
 
 
-def _api_key(explicit_key: str | None = None) -> str | None:
-    return explicit_key or os.getenv("TAVILY_API_KEY")
+def _api_key(explicit_key: str | None = None) -> str:
+    """Return the app-bundled Tavily key; no user input or Streamlit secret is required."""
+    key = (explicit_key or TAVILY_API_KEY).strip()
+    if not key:
+        raise RuntimeError("The bundled Tavily deployment key is empty.")
+    return key
 
 
 def search_literature(
@@ -69,7 +75,7 @@ def search_literature(
     max_results:
         Number of results to request (5–20 recommended).
     api_key:
-        Optional key. If omitted, ``TAVILY_API_KEY`` is read from the environment.
+        Optional runtime override. If omitted, the bundled deployment key is used.
     mof_focus:
         Add MOF/materials-science context to reduce generic matches.
     """
@@ -78,9 +84,6 @@ def search_literature(
         return []
 
     key = _api_key(api_key)
-    if not key:
-        raise RuntimeError("TAVILY_API_KEY is not configured.")
-
     try:
         from tavily import TavilyClient
     except ImportError as exc:  # pragma: no cover - deployment dependency guard
