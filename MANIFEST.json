@@ -1,121 +1,135 @@
 {
-  "project": "MOF Synthesis Assistant",
-  "version": "8.0",
+  "release": "v9.0",
   "files": [
     {
       "path": ".gitignore",
-      "size": 69,
-      "sha256": "7c04ab4c5b0c0f10679adde3cb1f54aadf1325111a8b2231c5a347085fc5bf1a"
+      "sha256": "7c04ab4c5b0c0f10679adde3cb1f54aadf1325111a8b2231c5a347085fc5bf1a",
+      "bytes": 69
     },
     {
       "path": ".streamlit/config.toml",
-      "size": 83,
-      "sha256": "671c2e312d77b8deecf755086ab2170fce241ce61819621a52588b8904ff07fd"
+      "sha256": "671c2e312d77b8deecf755086ab2170fce241ce61819621a52588b8904ff07fd",
+      "bytes": 83
     },
     {
       "path": "LICENSE",
-      "size": 250,
-      "sha256": "b31eb295670efd63177916c746e14a8ec6727bb258b24a3fe42fd35dfdee3863"
+      "sha256": "b31eb295670efd63177916c746e14a8ec6727bb258b24a3fe42fd35dfdee3863",
+      "bytes": 250
     },
     {
       "path": "README.md",
-      "size": 1183,
-      "sha256": "5014a1792a8a413b2dcd0b8032a63149036039dae3c751c8dc398a4533256eff"
+      "sha256": "35ba4dc78f4fa2076b58c7a04ca8ac10c4f9480215abc8789cf08d17d3dc07d0",
+      "bytes": 1279
     },
     {
       "path": "app.py",
-      "size": 6366,
-      "sha256": "811ead4b88e1aecd2e5b41469918f12c569b93d3e0731755468f9c34215db607"
+      "sha256": "1afdedd1ed40a9924f950bc31e6c80b2729e92561d4a0ebb7e571bbc3743bfcf",
+      "bytes": 9928
     },
     {
       "path": "data/knowledge_database.csv",
-      "size": 442130,
-      "sha256": "8d6046c790b098dce7a9a7b39dffeaf84143f1da75494ee6240a6efe3b0a2aec"
+      "sha256": "8d6046c790b098dce7a9a7b39dffeaf84143f1da75494ee6240a6efe3b0a2aec",
+      "bytes": 442130
     },
     {
       "path": "models/MOF_ChemAware_Ensemble_v8_0.joblib",
-      "size": 1593888,
-      "sha256": "48d097c78996e4fdd268d1aa39e645a8e2fb346255ced894225ba61e5aa1b752"
+      "sha256": "48d097c78996e4fdd268d1aa39e645a8e2fb346255ced894225ba61e5aa1b752",
+      "bytes": 1593888
     },
     {
       "path": "models/MOF_Hybrid_ChemAware_v8_0.joblib",
-      "size": 1944452,
-      "sha256": "d53d5ced142194d80d0cbec6e6a6d68b53682eda79cf59539118f0d38603ce2b"
+      "sha256": "d53d5ced142194d80d0cbec6e6a6d68b53682eda79cf59539118f0d38603ce2b",
+      "bytes": 1944452
     },
     {
       "path": "models/feature_schema_v8_0.json",
-      "size": 1930,
-      "sha256": "9e45422a42059bc8c2a166f3c93d391fe7cc384de88c9bfb65a25a36b884ca3a"
+      "sha256": "9e45422a42059bc8c2a166f3c93d391fe7cc384de88c9bfb65a25a36b884ca3a",
+      "bytes": 1930
     },
     {
       "path": "models/metal_properties.json",
-      "size": 3824,
-      "sha256": "c1275ba41e588d3b295653a9719e746d56437aedda611c99e4740f181a90e79d"
+      "sha256": "c1275ba41e588d3b295653a9719e746d56437aedda611c99e4740f181a90e79d",
+      "bytes": 3824
     },
     {
       "path": "reports/SCIENTIFIC_UPDATE_v8_0.md",
-      "size": 1535,
-      "sha256": "481d44bfd7ba642fea6f33a6b4c4bc96b7d6508c7eefa0971ca5096d9725e6b5"
+      "sha256": "481d44bfd7ba642fea6f33a6b4c4bc96b7d6508c7eefa0971ca5096d9725e6b5",
+      "bytes": 1535
+    },
+    {
+      "path": "reports/SCIENTIFIC_UPDATE_v9_0.md",
+      "sha256": "aea3cc4f037a8c4206eb257563eb34b302a311d9b449cb486473eb170e66860f",
+      "bytes": 1098
     },
     {
       "path": "reports/external_class_metrics_v8_0.csv",
-      "size": 462,
-      "sha256": "22e249246c705672e3010c734594d9abc8e37cab02574e0e2a13d20f3a582756"
+      "sha256": "22e249246c705672e3010c734594d9abc8e37cab02574e0e2a13d20f3a582756",
+      "bytes": 462
     },
     {
       "path": "reports/external_confusion_matrix_v8_0.csv",
-      "size": 68,
-      "sha256": "cfc7d3ddc734acadf4a3c3db8cd597904afbcd3fef970f20423b309aa7639e39"
+      "sha256": "cfc7d3ddc734acadf4a3c3db8cd597904afbcd3fef970f20423b309aa7639e39",
+      "bytes": 68
     },
     {
       "path": "reports/external_metrics_v8_0.json",
-      "size": 356,
-      "sha256": "e4d03968af24a6e280809624d2f5b5d69da73f50247ca0c060cba5873b99f519"
+      "sha256": "e4d03968af24a6e280809624d2f5b5d69da73f50247ca0c060cba5873b99f519",
+      "bytes": 356
     },
     {
       "path": "reports/external_predictions_v8_0.csv",
-      "size": 33645,
-      "sha256": "b353322358712c37ef7f922fc540bc6735e8bc89b044560b0c28b34acc795326"
+      "sha256": "b353322358712c37ef7f922fc540bc6735e8bc89b044560b0c28b34acc795326",
+      "bytes": 33645
     },
     {
       "path": "reports/grouped_cv_fold_metrics_v8_0.csv",
-      "size": 619,
-      "sha256": "baf0bf82f52c7251e2700aa1a8dfb4436accee099951df8178949eaad5c98501"
+      "sha256": "baf0bf82f52c7251e2700aa1a8dfb4436accee099951df8178949eaad5c98501",
+      "bytes": 619
     },
     {
       "path": "reports/grouped_cv_summary_v8_0.csv",
-      "size": 501,
-      "sha256": "332f55de6cf72d659c99f5810806f7e81812a2500338dd3c1e202cad071e6551"
+      "sha256": "332f55de6cf72d659c99f5810806f7e81812a2500338dd3c1e202cad071e6551",
+      "bytes": 501
     },
     {
       "path": "requirements.txt",
-      "size": 96,
-      "sha256": "c416014901e32163e0d1e7eca2fb796bfb88787c5b9dbbf120376ef56abdc9ad"
+      "sha256": "1c8524904f029d2138e4b40905c4496e2e13f585f538e024ed2c4a2a7c286bf7",
+      "bytes": 112
     },
     {
       "path": "src/__init__.py",
-      "size": 0,
-      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
     },
     {
       "path": "src/chem.py",
-      "size": 4373,
-      "sha256": "6c6549cc76487aa42d465355395db632c4c0f47ac7478cf338fb04072e668cf6"
+      "sha256": "6c6549cc76487aa42d465355395db632c4c0f47ac7478cf338fb04072e668cf6",
+      "bytes": 4373
     },
     {
       "path": "src/engine.py",
-      "size": 3212,
-      "sha256": "54b422c5ba66b010c8a2fce3e986f0a38b191bdc31ad7aefa973ba92fc530dfc"
+      "sha256": "54b422c5ba66b010c8a2fce3e986f0a38b191bdc31ad7aefa973ba92fc530dfc",
+      "bytes": 3212
     },
     {
       "path": "src/pubchem.py",
-      "size": 459,
-      "sha256": "44e61c72aa7dae9015949fba697941c22183f7e4c6874ce50ddd0c0660e01b46"
+      "sha256": "5962981926d7d364f303082f878f70d8158c005900985d5b46f52349c90937cc",
+      "bytes": 326
+    },
+    {
+      "path": "src/resolver.py",
+      "sha256": "b901ded4755d5864da14226cfe96450b2645d2178179f085ebbe6b941c5477af",
+      "bytes": 10745
     },
     {
       "path": "tests/smoke_test.py",
-      "size": 454,
-      "sha256": "49e28195f0e93afc22e414efb55ebf811f470a38f600f2d19e5552845b256163"
+      "sha256": "99f027f50bee46a032482eaee2b95d52e704dbd025cb02113c20d9c82d774fe5",
+      "bytes": 801
+    },
+    {
+      "path": "tests/test_resolver.py",
+      "sha256": "161db98dfeebe8bb0e566671bd4c41f89c6ceeb3333c1e341d753db3d47b9966",
+      "bytes": 528
     }
   ]
 }

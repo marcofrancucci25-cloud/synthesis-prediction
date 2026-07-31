@@ -37,6 +37,57 @@ def similar(values,n=15):
         except: pass
     return d.sort_values('_score',ascending=False).head(n)
 
+def explain_prediction(values):
+    """Local, model-based sensitivity summary for the current synthesis.
+
+    Each condition is varied independently across plausible values observed in the
+    experimental database. The output is descriptive rather than causal: it shows
+    which editable parameters can most change P(crystalline) near the current input.
+    """
+    _, base_p, _ = predict(values)
+    base_cryst = float(base_p[2])
+    specs = {
+        'Solvente': list(DB['Solvente'].dropna().astype(str).value_counts().head(10).index),
+        'Temperatura_C': sorted(set([max(20.0, float(values.get('Temperatura_C',120))+d) for d in (-40,-20,20,40)] + [80.0,100.0,120.0,150.0])),
+        'Tempo_ore': sorted(set([max(0.5, float(values.get('Tempo_ore',24))*m) for m in (0.5,2.0)] + [6.0,12.0,24.0,48.0,72.0])),
+        'Rapporto_LM': sorted(set([max(0.1, float(values.get('Rapporto_LM',1))+d) for d in (-1.0,-0.5,0.5,1.0)] + [0.5,1.0,2.0,3.0])),
+        'Additivo_Colinker': list(DB['Additivo_Colinker'].fillna('Nessuno').astype(str).value_counts().head(8).index),
+        'Volume solvente': sorted(set([max(0.5, float(values.get('Volume solvente',10))*m) for m in (0.5,1.5,2.0)])),
+    }
+    labels = {
+        'Solvente':'Solvent', 'Temperatura_C':'Temperature', 'Tempo_ore':'Reaction time',
+        'Rapporto_LM':'Ligand/metal ratio', 'Additivo_Colinker':'Additive / co-linker',
+        'Volume solvente':'Solvent volume'
+    }
+    rows=[]
+    for field, candidates in specs.items():
+        tested=[]
+        current=values.get(field)
+        for candidate in candidates:
+            if str(candidate)==str(current):
+                continue
+            v=dict(values); v[field]=candidate
+            try:
+                _, pp, _=predict(v); tested.append((candidate,float(pp[2])))
+            except Exception:
+                continue
+        if not tested:
+            continue
+        best_val,best_p=max(tested,key=lambda z:z[1])
+        mean_alt=float(np.mean([z[1] for z in tested]))
+        improvement=best_p-base_cryst
+        support=base_cryst-mean_alt
+        direction='Limiting' if improvement>0.025 else ('Favorable' if support>0.025 else 'Neutral')
+        influence=max(abs(improvement),abs(support))
+        rows.append({
+            'Parameter':labels[field], 'Field':field, 'Current':current,
+            'Influence':influence, 'Direction':direction,
+            'Potential_improvement':max(0.0,improvement),
+            'Best_alternative':best_val, 'Best_P_crystalline':best_p,
+        })
+    return pd.DataFrame(rows).sort_values('Influence',ascending=False).reset_index(drop=True), base_cryst
+
+
 def optimize(values,top_n=10):
     base=dict(values); temps=sorted(set([max(20,float(base['Temperatura_C'])+x) for x in (-40,-20,0,20,40)]))
     times=sorted(set([max(0.5,float(base['Tempo_ore'])*x) for x in (0.5,1,2)]))

@@ -1,36 +1,38 @@
-# MOF Synthesis Assistant v8.0
+# MOF Synthesis Assistant v9.1
 
-Streamlit platform for literature-informed MOF synthesis prediction and optimization.
+Interactive Streamlit application for literature-aware MOF synthesis prediction and condition prioritization.
 
-## New chemistry-aware inputs
+## New in v9.1
 
-- Free ligand name, abbreviation, molecular formula or SMILES text
-- Optional PubChem resolution
-- Extended MOF-relevant metal selection
-- Oxidation state
-- Counterion / precursor class
-- Full precursor formula
-- Hydration number
-
-The model combines a structured Random Forest with a ligand-text Logistic Regression. Metals are represented both categorically and through periodic descriptors; precursor formulas contribute counterion, oxidation-state and hydration features.
+- ligand input by name, abbreviation, CAS number, molecular formula or SMILES;
+- robust resolver chain: local RDKit → MOF aliases → NCI Cactus → PubChem;
+- corrected PubChem properties (`SMILES` and `ConnectivitySMILES`);
+- RDKit validation and molecular descriptors;
+- explicit warning for ambiguous formula-only queries;
+- metal precursor formula, counterion, oxidation state and hydration fields;
+- predictive, knowledge, applicability-domain and optimizer modules.
 
 ## Deploy on Streamlit Community Cloud
 
-- Repository: this repository
-- Branch: `main`
+- Repository branch: `main`
 - Main file: `app.py`
-- Recommended Python: **3.12 or 3.13**
+- Recommended Python: 3.12 or 3.13
+
+The application requires outbound HTTPS access to resolve chemical names. Direct SMILES input and the predictive core remain available without the external resolver.
 
 ## Local run
 
 ```bash
 python -m venv .venv
-# Windows: .venv\Scripts\activate
-# Linux/macOS: source .venv/bin/activate
+.venv\Scripts\activate
 pip install -r requirements.txt
 streamlit run app.py
 ```
 
-## Important limitation
+## Scientific boundary
 
-Free-text ligand input enables name/formula similarity and accepts unseen ligands, but it is not a substitute for a molecular-structure model. Predictions outside the training domain are explicitly flagged.
+The v9.1 release improves chemical identity resolution but retains the frozen v8.0 predictive core. Successful structure resolution does not imply that a ligand is inside the model applicability domain.
+
+
+## v9.1 interface workflow
+Prediction and optimization are now integrated in one page. After a prediction, the app displays a traffic-light assessment, a local sensitivity explanation of favorable and limiting experimental parameters, and a contextual button for generating improved conditions while keeping the selected metal–ligand identity fixed.
