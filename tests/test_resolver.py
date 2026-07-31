@@ -15,3 +15,11 @@ def test_direct_smiles():
 def test_input_detection():
     assert detect_input_type("100-21-0") == "CAS"
     assert detect_input_type("C8H6O4") == "molecular formula"
+
+
+def test_amino_bipyrazole_curated_aliases():
+    for query in ["3-amino-4,4'-bipyrazole", "3-amino-4,4′-bipyrazole", "BPZNH2", "H2BPZ-NH2"]:
+        result = resolve_ligand(query)
+        assert result["success"]
+        assert result["molecular_formula"] == "C6H7N5"
+        assert result["source"] == "curated MOF linker library / RDKit"

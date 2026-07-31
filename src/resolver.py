@@ -13,6 +13,7 @@ from rdkit import Chem, RDLogger
 
 RDLogger.DisableLog("rdApp.error")
 from rdkit.Chem import Crippen, Descriptors, Lipinski, rdMolDescriptors
+from rdkit.Chem.inchi import MolToInchiKey
 
 USER_AGENT = "MOF-Synthesis-Assistant/9.0 (chemical resolver; academic research)"
 DEFAULT_TIMEOUT = 5
@@ -34,6 +35,30 @@ ALIASES: dict[str, str] = {
     "mim": "2-methylimidazole",
     "bpy": "2,2'-bipyridine",
     "4,4-bpy": "4,4'-bipyridine",
+}
+
+
+# Curated structures for specialist MOF linkers that are often absent or
+# ambiguously indexed in general-purpose chemical databases.  These entries
+# are resolved locally before external API calls.
+LOCAL_STRUCTURES: dict[str, dict[str, str]] = {
+    "3-amino-4,4'-bipyrazole": {
+        "title": "3-amino-4,4'-bipyrazole",
+        "iupac_name": "4-(1H-pyrazol-4-yl)-1H-pyrazol-3-amine",
+        "smiles": "Nc1n[nH]cc1-c1cn[nH]c1",
+    },
+}
+
+LOCAL_STRUCTURE_ALIASES: dict[str, str] = {
+    "3-amino-4,4'-bipyrazole": "3-amino-4,4'-bipyrazole",
+    "3-amino-4,4-bipyrazole": "3-amino-4,4'-bipyrazole",
+    "3-aminobipyrazole": "3-amino-4,4'-bipyrazole",
+    "aminobipyrazole": "3-amino-4,4'-bipyrazole",
+    "bpznh2": "3-amino-4,4'-bipyrazole",
+    "bpz-nh2": "3-amino-4,4'-bipyrazole",
+    "nh2-bpz": "3-amino-4,4'-bipyrazole",
+    "h2bpznh2": "3-amino-4,4'-bipyrazole",
+    "h2bpz-nh2": "3-amino-4,4'-bipyrazole",
 }
 
 CAS_RE = re.compile(r"^\d{2,7}-\d{2}-\d$")
@@ -213,6 +238,30 @@ def _result_from_pubchem(query: str, normalized: str, input_type: str, row: dict
     )
 
 
+
+def _local_structure_result(original: str, normalized: str, key: str) -> ResolutionResult | None:
+    canonical_key = LOCAL_STRUCTURE_ALIASES.get(key.casefold())
+    if not canonical_key:
+        return None
+    entry = LOCAL_STRUCTURES[canonical_key]
+    canonical = _canonicalize_smiles(entry["smiles"])
+    if not canonical:
+        return None
+    full, connectivity = canonical
+    mol = Chem.MolFromSmiles(full)
+    formula = rdMolDescriptors.CalcMolFormula(mol) if mol is not None else None
+    mw = float(Descriptors.MolWt(mol)) if mol is not None else None
+    inchikey = MolToInchiKey(mol) if mol is not None else None
+    return ResolutionResult(
+        success=True, query=original, normalized_query=normalized,
+        input_type="curated MOF ligand", source="curated MOF linker library / RDKit",
+        title=entry["title"], iupac_name=entry.get("iupac_name"),
+        molecular_formula=formula, smiles=full, connectivity_smiles=connectivity,
+        inchikey=inchikey, molecular_weight=round(mw, 4) if mw is not None else None,
+        descriptors=_descriptors(full),
+        message="Resolved locally from the curated MOF linker library and validated with RDKit.",
+    )
+
 @lru_cache(maxsize=512)
 def resolve_ligand(query: str, timeout: int = DEFAULT_TIMEOUT) -> dict[str, Any]:
     original = str(query or "")
@@ -220,7 +269,15 @@ def resolve_ligand(query: str, timeout: int = DEFAULT_TIMEOUT) -> dict[str, Any]
     if not normalized:
         return ResolutionResult(False, original, normalized, "empty", message="Enter a ligand identifier.").to_dict()
 
+    # Specialist MOF linker aliases are checked before general web services.
+    local = _local_structure_result(original, normalized, normalized.casefold())
+    if local:
+        return local.to_dict()
+
     aliased = _alias(normalized)
+    local = _local_structure_result(original, normalized, aliased.casefold())
+    if local:
+        return local.to_dict()
     input_type = detect_input_type(aliased)
 
     if input_type == "SMILES":
