@@ -1,3 +1,7 @@
+## Version 9.5.0
+
+Updated ligand identity card with a 2D RDKit structure, clean molecular identifiers, key descriptors, and expandable technical details.
+
 # MOF Synthesis Assistant v9.2
 
 Interactive Streamlit application for literature-aware MOF synthesis prediction and condition prioritization.

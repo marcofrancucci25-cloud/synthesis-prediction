@@ -1,7 +1,10 @@
 import json
+import html
 from pathlib import Path
 import pandas as pd
 import streamlit as st
+from rdkit import Chem
+from rdkit.Chem import Draw
 from src.chem import METALS, FAMILIES, COUNTERIONS, infer_family, precursor_formula, parse_salt
 from src.engine import predict, applicability, similar, optimize, explain_prediction, DB
 from src.resolver import resolve_ligand
@@ -10,34 +13,137 @@ from src.literature import search_literature
 # Temporary Tavily deployment key. Replace this value when rotating the key.
 TAVILY_DEPLOYMENT_KEY = "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"
 
-APP_VERSION = "9.4.1"
+APP_VERSION = "9.5.0"
 
 st.set_page_config(page_title="MOF Synthesis Assistant", page_icon="🧪", layout="wide")
-st.title("🧪 MOF Synthesis Assistant v9.2")
-st.caption("Version 9.4.1 · Literature interface without user API-key field")
+st.title("🧪 MOF Synthesis Assistant v9.5")
+st.caption("Version 9.5.0 · Refined ligand identity card and integrated literature search")
 st.caption("Prediction, intuitive condition diagnosis, contextual optimization and recent literature search")
 page = st.sidebar.radio("Module", ["Predict synthesis", "Literature search", "Model validation", "About"])
 
 
+def _format_formula(formula):
+    if not formula:
+        return "Unavailable"
+    import re
+    return re.sub(r"(\d+)", r"<sub>\1</sub>", html.escape(str(formula)))
+
+
+def _molecule_image(smiles):
+    if not smiles:
+        return None
+    mol = Chem.MolFromSmiles(smiles)
+    if mol is None:
+        return None
+    Draw.rdDepictor.Compute2DCoords(mol)
+    return Draw.MolToImage(mol, size=(430, 300), kekulize=True)
+
+
+def _descriptor_value(descriptors, key, suffix=""):
+    value = (descriptors or {}).get(key)
+    return "—" if value is None else f"{value}{suffix}"
+
+
 def _resolved_identity(prefix, typed_ligand):
-    state_key=prefix+"resolved_ligand"
-    if st.button("Resolve ligand",key=prefix+"resolve",disabled=not typed_ligand,type="secondary"):
+    state_key = prefix + "resolved_ligand"
+    if st.button("Resolve ligand", key=prefix + "resolve", disabled=not typed_ligand, type="secondary"):
         with st.spinner("Resolving through local parsing, NCI Cactus and PubChem..."):
-            st.session_state[state_key]=resolve_ligand(typed_ligand)
-    result=st.session_state.get(state_key)
-    if result and result.get("query")!=typed_ligand: result=None
-    if not result: return None
-    if result.get("success"):
-        st.success(f"Resolved via {result.get('source')}")
-        if result.get("ambiguity_warning"): st.warning(result["ambiguity_warning"])
-        c1,c2=st.columns(2)
-        with c1:
-            st.markdown("**Resolved identity**")
-            st.write({"Title":result.get("title"),"IUPAC name":result.get("iupac_name"),"Formula":result.get("molecular_formula"),"Molecular weight":result.get("molecular_weight"),"InChIKey":result.get("inchikey"),"Source":result.get("source")})
-        with c2:
-            st.markdown("**Canonical SMILES**"); st.code(result.get("smiles") or "Unavailable",language=None)
-            if result.get("descriptors"): st.dataframe(pd.DataFrame([result["descriptors"]]),hide_index=True,use_container_width=True)
-    else: st.warning(result.get("message","Ligand resolution failed."))
+            st.session_state[state_key] = resolve_ligand(typed_ligand)
+
+    result = st.session_state.get(state_key)
+    if result and result.get("query") != typed_ligand:
+        result = None
+    if not result:
+        return None
+
+    if not result.get("success"):
+        st.warning(result.get("message", "Ligand resolution failed."))
+        return result
+
+    if result.get("ambiguity_warning"):
+        st.warning(result["ambiguity_warning"])
+
+    title = result.get("title") or result.get("iupac_name") or typed_ligand or "Resolved ligand"
+    iupac = result.get("iupac_name") or "Not available"
+    formula = _format_formula(result.get("molecular_formula"))
+    mw = result.get("molecular_weight")
+    mw_text = f"{mw:.2f} g/mol" if isinstance(mw, (int, float)) else "Unavailable"
+    inchikey = result.get("inchikey") or "Unavailable"
+    source = result.get("source") or "Chemical resolver"
+    descriptors = result.get("descriptors") or {}
+
+    card = f"""
+    <div style="border:1px solid #d9e2ec;border-radius:16px;padding:20px 22px;margin:8px 0 16px 0;
+                background:linear-gradient(135deg,#ffffff 0%,#f8fbff 100%);box-shadow:0 4px 16px rgba(15,23,42,0.06);">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:16px;flex-wrap:wrap;">
+        <div>
+          <div style="font-size:0.82rem;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:#2e7d5b;">
+            ✓ Ligand successfully identified
+          </div>
+          <div style="font-size:1.55rem;font-weight:750;color:#172033;margin-top:5px;">{html.escape(str(title))}</div>
+          <div style="font-size:0.93rem;color:#5f6b7a;margin-top:4px;max-width:760px;">{html.escape(str(iupac))}</div>
+        </div>
+        <div style="background:#e9f8ef;color:#24724d;border-radius:999px;padding:7px 12px;font-size:0.82rem;font-weight:700;">
+          Resolved identity
+        </div>
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:10px;margin-top:18px;">
+        <div style="background:#fff;border:1px solid #e7edf3;border-radius:11px;padding:12px;">
+          <div style="font-size:.75rem;color:#718096;text-transform:uppercase;font-weight:700;">Formula</div>
+          <div style="font-size:1.08rem;font-weight:700;color:#1f2937;margin-top:4px;">{formula}</div>
+        </div>
+        <div style="background:#fff;border:1px solid #e7edf3;border-radius:11px;padding:12px;">
+          <div style="font-size:.75rem;color:#718096;text-transform:uppercase;font-weight:700;">Molecular weight</div>
+          <div style="font-size:1.08rem;font-weight:700;color:#1f2937;margin-top:4px;">{html.escape(mw_text)}</div>
+        </div>
+        <div style="background:#fff;border:1px solid #e7edf3;border-radius:11px;padding:12px;">
+          <div style="font-size:.75rem;color:#718096;text-transform:uppercase;font-weight:700;">Source</div>
+          <div style="font-size:.95rem;font-weight:650;color:#1f2937;margin-top:4px;">{html.escape(str(source))}</div>
+        </div>
+      </div>
+    </div>
+    """
+    st.markdown(card, unsafe_allow_html=True)
+
+    left, right = st.columns([0.9, 1.35], gap="large")
+    with left:
+        image = _molecule_image(result.get("smiles"))
+        if image is not None:
+            st.image(image, caption="2D molecular structure", use_container_width=True)
+        else:
+            st.info("A 2D structure preview is not available for this result.")
+
+    with right:
+        st.markdown("#### Molecular identifiers")
+        id_table = pd.DataFrame([
+            ["InChIKey", inchikey],
+            ["Canonical SMILES", result.get("smiles") or "Unavailable"],
+        ], columns=["Identifier", "Value"])
+        st.dataframe(id_table, hide_index=True, use_container_width=True)
+
+        st.markdown("#### Key molecular descriptors")
+        descriptor_table = pd.DataFrame([
+            ["TPSA", _descriptor_value(descriptors, "TPSA", " Å²")],
+            ["LogP", _descriptor_value(descriptors, "LogP")],
+            ["H-bond donors", _descriptor_value(descriptors, "HBD")],
+            ["H-bond acceptors", _descriptor_value(descriptors, "HBA")],
+            ["Aromatic rings", _descriptor_value(descriptors, "AromaticRings")],
+            ["Rotatable bonds", _descriptor_value(descriptors, "RotatableBonds")],
+        ], columns=["Descriptor", "Value"])
+        st.dataframe(descriptor_table, hide_index=True, use_container_width=True)
+
+    with st.expander("View complete resolver details"):
+        st.caption(result.get("message") or "Structure resolved and validated.")
+        extra = pd.DataFrame([
+            ["Input type", result.get("input_type") or "—"],
+            ["Normalized query", result.get("normalized_query") or "—"],
+            ["Connectivity SMILES", result.get("connectivity_smiles") or "—"],
+            ["Exact mass", _descriptor_value(descriptors, "ExactMass")],
+            ["Heavy atoms", _descriptor_value(descriptors, "HeavyAtoms")],
+            ["Formal charge", _descriptor_value(descriptors, "FormalCharge")],
+        ], columns=["Field", "Value"])
+        st.dataframe(extra, hide_index=True, use_container_width=True)
+
     return result
 
 
