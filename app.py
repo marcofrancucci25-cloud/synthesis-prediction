@@ -4,7 +4,6 @@ from pathlib import Path
 import pandas as pd
 import streamlit as st
 from rdkit import Chem
-from rdkit.Chem import Draw
 from src.chem import METALS, FAMILIES, COUNTERIONS, infer_family, precursor_formula, parse_salt
 from src.engine import predict, applicability, similar, optimize, explain_prediction, DB
 from src.resolver import resolve_ligand
@@ -13,11 +12,11 @@ from src.literature import search_literature
 # Temporary Tavily deployment key. Replace this value when rotating the key.
 TAVILY_DEPLOYMENT_KEY = "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"
 
-APP_VERSION = "9.5.0"
+APP_VERSION = "9.5.1"
 
 st.set_page_config(page_title="MOF Synthesis Assistant", page_icon="🧪", layout="wide")
-st.title("🧪 MOF Synthesis Assistant v9.5")
-st.caption("Version 9.5.0 · Refined ligand identity card and integrated literature search")
+st.title("🧪 MOF Synthesis Assistant v9.5.1")
+st.caption("Version 9.5.1 · Refined ligand identity card with deployment-safe structure preview")
 st.caption("Prediction, intuitive condition diagnosis, contextual optimization and recent literature search")
 page = st.sidebar.radio("Module", ["Predict synthesis", "Literature search", "Model validation", "About"])
 
@@ -30,13 +29,23 @@ def _format_formula(formula):
 
 
 def _molecule_image(smiles):
+    """Render a 2D structure when RDKit drawing libraries are available.
+
+    RDKit's drawing backend may depend on Linux X-render libraries that are not
+    present in every Streamlit image. Importing it lazily prevents the entire
+    application from failing when those optional system libraries are missing.
+    """
     if not smiles:
         return None
-    mol = Chem.MolFromSmiles(smiles)
-    if mol is None:
+    try:
+        from rdkit.Chem import Draw
+        mol = Chem.MolFromSmiles(smiles)
+        if mol is None:
+            return None
+        Draw.rdDepictor.Compute2DCoords(mol)
+        return Draw.MolToImage(mol, size=(430, 300), kekulize=True)
+    except (ImportError, OSError, RuntimeError):
         return None
-    Draw.rdDepictor.Compute2DCoords(mol)
-    return Draw.MolToImage(mol, size=(430, 300), kekulize=True)
 
 
 def _descriptor_value(descriptors, key, suffix=""):
