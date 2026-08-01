@@ -1,6 +1,6 @@
 {
-  "version": "10.4.0",
-  "file_count": 61,
+  "version": "10.4.1",
+  "file_count": 62,
   "files": [
     {
       "path": ".gitignore",
@@ -23,24 +23,19 @@
       "sha256": "b31eb295670efd63177916c746e14a8ec6727bb258b24a3fe42fd35dfdee3863"
     },
     {
-      "path": "MANIFEST.json",
-      "size": 8255,
-      "sha256": "67208aae83a139fc440ada3eb34bf421d045456123f016bee42436d2b30e7670"
-    },
-    {
       "path": "README.md",
-      "size": 4655,
-      "sha256": "dce6a6512491cfc6931a1beba02aa1efcd9c76facbc44239a4785b759ebb12d0"
+      "size": 5224,
+      "sha256": "7020cea9a2d3284c3437f87edbf341e95c1d55105a5aadc43f1c50226c54047c"
     },
     {
       "path": "VERSION",
       "size": 7,
-      "sha256": "59d79b050ee396cccc1896296f7c5ded171e72dabc54723b8ad5ea154ebebf07"
+      "sha256": "4eed702adafe01d9c3f0b742fbeecc86da47b95a4c1ed9fa4b0dbfba9e449302"
     },
     {
       "path": "app.py",
-      "size": 32014,
-      "sha256": "9c0845ab6bc5acf730c7b90d178ff7e0e5c7ca54a76685405a31a066761f48e1"
+      "size": 32727,
+      "sha256": "ce9d0d0fb2cbdac4cc3e15947bc7cee872a3a5574808797c1c9038aab839c413"
     },
     {
       "path": "data/Dataset_Multivariate_Schema_v10.csv",
@@ -188,6 +183,11 @@
       "sha256": "aea3cc4f037a8c4206eb257563eb34b302a311d9b449cb486473eb170e66860f"
     },
     {
+      "path": "reports/VALIDITY_GATE_v10_4_1.md",
+      "size": 856,
+      "sha256": "9fe0806aa4c5b7f4d42ee32382a8b27ed6cbc13c505d3281a0fe2e23b55539d4"
+    },
+    {
       "path": "reports/external_class_metrics_v8_0.csv",
       "size": 462,
       "sha256": "22e249246c705672e3010c734594d9abc8e37cab02574e0e2a13d20f3a582756"
@@ -254,8 +254,8 @@
     },
     {
       "path": "src/engine.py",
-      "size": 5348,
-      "sha256": "fb3a39fb07996b4768f82bf143069b7acfa69eb4aebcfd229082ba0bcd5e9b1f"
+      "size": 9524,
+      "sha256": "55b7ad7920d7c7b2fe8e74f569ac69e56ad241c85b4c64221f18a36e6fe119a9"
     },
     {
       "path": "src/literature.py",
@@ -296,6 +296,11 @@
       "path": "tests/test_positive_recommendation.py",
       "size": 1221,
       "sha256": "cb1ec14db8e74d6451d483ac43a26b0faadfaeb544647a15cce52c32b3f13d27"
+    },
+    {
+      "path": "tests/test_prediction_validity.py",
+      "size": 1323,
+      "sha256": "19e0718eeea522ad356abce3630c98716e82025f9ebc7f0baec980c21204db32"
     },
     {
       "path": "tests/test_resolver.py",

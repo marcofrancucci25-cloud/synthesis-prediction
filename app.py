@@ -9,6 +9,7 @@ import src.engine as engine
 
 predict = engine.predict
 applicability = engine.applicability
+prediction_validity = engine.prediction_validity
 similar = engine.similar
 explain_prediction = engine.explain_prediction
 DB = engine.DB
@@ -42,11 +43,11 @@ from src.literature import search_literature
 # Temporary Tavily deployment key. Replace this value when rotating the key.
 TAVILY_DEPLOYMENT_KEY = "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"
 
-APP_VERSION = "10.4.0"
+APP_VERSION = "10.4.1"
 
 st.set_page_config(page_title="MOF Synthesis Assistant", page_icon="🧪", layout="wide")
-st.title("🧪 MOF Synthesis Assistant v10.4.0")
-st.caption("Version 10.4.0 · Streamlined top-5 optimizer results and faster ligand input workflow")
+st.title("🧪 MOF Synthesis Assistant v10.4.1")
+st.caption("Version 10.4.1 · Prediction validity gate for extreme and inconsistent conditions")
 st.caption("Prediction evaluates the exact entered conditions. Optimization separately combines three-class risk, successful precedents, feasibility and applicability while keeping only ligand and metal fixed.")
 page = st.sidebar.radio("Module", ["Predict synthesis", "Literature search", "Model validation", "About"])
 
@@ -320,7 +321,7 @@ def input_form(prefix="p"):
 
 
 def render_prediction(result):
-    values=result['values']; probabilities=result['probabilities']; predicted=result['predicted']; ad=result['ad']
+    values=result['values']; probabilities=result['probabilities']; predicted=result['predicted']; ad=result['ad']; validity=result.get('validity') or ad.get('validity',{})
     labels=["Failed/no useful product","Amorphous or uncertain product","Crystalline MOF"]
     pcr=float(probabilities[2])
     if pcr>=0.75: signal="🟢 Very favorable conditions"
@@ -332,7 +333,13 @@ def render_prediction(result):
     c1,c2,c3=st.columns(3)
     c1.metric("Probability of crystalline MOF",f"{pcr:.1%}")
     c2.metric("Applicability domain",ad['label'])
-    c3.metric("AD score",f"{ad['score']:.2f}")
+    c3.metric("Prediction validity",validity.get('label','Not assessed'))
+    if not validity.get('reliable', True):
+        st.error("The entered conditions are outside or near the edge of the experimentally validated range. The numerical probabilities are shown for transparency, but should not be interpreted as reliable success estimates.")
+        for issue in validity.get('issues', [])[:6]:
+            st.write(f"- {issue}")
+    else:
+        st.caption(f"Validated-range score: {validity.get('score',1.0):.2f} · Applicability score: {ad['score']:.2f}")
     with st.expander("View all class probabilities"):
         st.bar_chart(pd.DataFrame({"Probability":probabilities},index=labels))
     influence=result['influence']
@@ -445,8 +452,8 @@ if page=="Predict synthesis":
     with action_right:
         st.button("Reset parameters", on_click=_reset_prediction_inputs, args=("p",), use_container_width=True)
     if run_prediction:
-        _,probabilities,predicted=predict(values); ad=applicability(values); influence,_=explain_prediction(values)
-        st.session_state['prediction_result']={'values':values,'probabilities':probabilities,'predicted':predicted,'ad':ad,'influence':influence}
+        _,probabilities,predicted=predict(values); validity=prediction_validity(values); ad=applicability(values); influence,_=explain_prediction(values)
+        st.session_state['prediction_result']={'values':values,'probabilities':probabilities,'predicted':predicted,'ad':ad,'validity':validity,'influence':influence}
         st.session_state.pop('optimization_results',None)
         st.session_state.pop('optimization_metadata',None)
     if 'prediction_result' in st.session_state: render_prediction(st.session_state['prediction_result'])
@@ -507,10 +514,10 @@ elif page=="Literature search":
 elif page=="Model validation":
     root=Path(__file__).parent; metrics=json.loads((root/"reports/external_metrics_v8_0.json").read_text())
     st.subheader("Ligand-group external test of the current predictive core")
-    st.info("v10.3 separates exact-condition prediction from a hybrid optimizer. The balanced predictive core remains frozen; a distinct positive synthesis library guides coherent recommendations without being used as a substitute for negative data.")
+    st.info("v10.4.1 separates exact-condition prediction from a hybrid optimizer. The balanced predictive core remains frozen; a distinct positive synthesis library guides coherent recommendations without being used as a substitute for negative data.")
     st.json(metrics); st.dataframe(pd.read_csv(root/"reports/external_class_metrics_v8_0.csv"),use_container_width=True); st.dataframe(pd.read_csv(root/"reports/external_confusion_matrix_v8_0.csv",index_col=0),use_container_width=True)
 else:
     st.markdown("""### Scope and scientific limitations
-Version 10.3 separates the Prediction Engine from the Hybrid Optimization Engine. Prediction evaluates the exact user-entered conditions. Optimization keeps ligand and metal fixed, combines successful synthesis precedents with broad search, and evaluates each proposal using the balanced predictor, applicability and feasibility.
+Version 10.4.1 adds a validated-range gate and separates the Prediction Engine from the Hybrid Optimization Engine. Prediction evaluates the exact user-entered conditions. Optimization keeps ligand and metal fixed, combines successful synthesis precedents with broad search, and evaluates each proposal using the balanced predictor, applicability and feasibility.
 
 The explanation is **model-based and descriptive, not causal**. Optimized conditions are hypotheses for experimental prioritization, not guarantees of MOF formation. The predictive core remains the frozen v8.0 ensemble; the literature module is a retrieval aid and this interface update does not constitute a new external validation.""")

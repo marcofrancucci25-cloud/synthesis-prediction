@@ -19,16 +19,108 @@ def predict(values):
     p=ART['weights'][0]*ART['rf_model'].predict_proba(x)+ART['weights'][1]*ART['ligand_text_model'].predict_proba(x)
     return x, p[0], int(np.argmax(p[0]))
 
+
+NUMERIC_VALIDITY_COLUMNS = [
+    "Temperatura_C", "Tempo_ore", "Rapporto_LM",
+    "mmol_Legante", "mmol_Sale", "Volume solvente",
+]
+
+def _training_ranges():
+    ranges = {}
+    for c in NUMERIC_VALIDITY_COLUMNS:
+        x = pd.to_numeric(DB[c], errors="coerce").dropna()
+        if len(x):
+            ranges[c] = {
+                "min": float(x.min()), "max": float(x.max()),
+                "q01": float(x.quantile(0.01)), "q99": float(x.quantile(0.99)),
+                "q05": float(x.quantile(0.05)), "q95": float(x.quantile(0.95)),
+            }
+    return ranges
+
+TRAINING_RANGES = _training_ranges()
+
+def prediction_validity(values):
+    """Assess whether an input lies within the experimentally supported range.
+
+    This gate does not alter model probabilities. It reports when those
+    probabilities should not be interpreted as validated estimates.
+    """
+    issues, details = [], []
+    penalties = []
+    labels = {
+        "Temperatura_C":"Temperature", "Tempo_ore":"Reaction time",
+        "Rapporto_LM":"Ligand/metal ratio", "mmol_Legante":"Ligand amount",
+        "mmol_Sale":"Metal precursor amount", "Volume solvente":"Solvent volume",
+    }
+    for c in NUMERIC_VALIDITY_COLUMNS:
+        try:
+            v = float(values.get(c, np.nan))
+        except Exception:
+            v = np.nan
+        r = TRAINING_RANGES.get(c)
+        if not r or not np.isfinite(v):
+            issues.append(f"{labels[c]} is missing or non-numeric.")
+            penalties.append(1.0)
+            continue
+        if v < r["min"] or v > r["max"]:
+            issues.append(f"{labels[c]} ({v:g}) is outside the observed training range {r['min']:g}–{r['max']:g}.")
+            severity = 1.0
+        elif v < r["q01"] or v > r["q99"]:
+            issues.append(f"{labels[c]} ({v:g}) is in an extreme tail of the training data (central 98%: {r['q01']:g}–{r['q99']:g}).")
+            severity = 0.65
+        elif v < r["q05"] or v > r["q95"]:
+            severity = 0.25
+        else:
+            severity = 0.0
+        penalties.append(severity)
+        details.append({"field":c,"value":v,**r,"severity":severity})
+
+    # Internal consistency of user-entered stoichiometry.
+    try:
+        mmol_l=float(values.get("mmol_Legante")); mmol_m=float(values.get("mmol_Sale")); ratio=float(values.get("Rapporto_LM"))
+        calculated=mmol_l/mmol_m if mmol_m>0 else np.nan
+        rel=abs(calculated-ratio)/max(abs(calculated),0.05)
+        if np.isfinite(rel) and rel>0.20:
+            issues.append(f"Entered L:M ratio ({ratio:g}) is inconsistent with the reagent amounts (calculated {calculated:.3g}).")
+            penalties.append(min(1.0,0.5+rel/2))
+    except Exception:
+        pass
+
+    # Concentration plausibility where volume is available (mmol/mL numerically equals mol/L).
+    try:
+        vol=float(values.get("Volume solvente")); total=float(values.get("mmol_Legante"))+float(values.get("mmol_Sale"))
+        conc=total/vol if vol>0 else np.inf
+        if not np.isfinite(conc) or conc>1.35 or conc<0.003:
+            issues.append(f"Total precursor concentration ({conc:.3g} mol/L) is outside the central 98% of recorded syntheses (~0.003–1.32 mol/L).")
+            penalties.append(0.8)
+    except Exception:
+        pass
+
+    worst=max(penalties) if penalties else 0.0
+    mean=float(np.mean(penalties)) if penalties else 0.0
+    score=float(np.clip(1.0-(0.65*worst+0.35*mean),0,1))
+    if worst>=0.95 or score<0.45:
+        label="Outside validated experimental range"; reliable=False
+    elif worst>=0.60 or score<0.72:
+        label="Extrapolative / use with caution"; reliable=False
+    else:
+        label="Within validated experimental range"; reliable=True
+    return {"score":score,"label":label,"reliable":reliable,"issues":issues,"details":details}
+
 def applicability(values):
     ligand=str(values.get('Legante','')).strip().lower(); metal=str(values.get('Metallo','')); salt=str(values.get('Sale_Metallico',''))
     seen_lig=ligand in set(DB['Legante'].astype(str).str.lower())
     seen_metal=metal in set(DB['Metallo'].astype(str))
     seen_salt=salt in set(DB['Sale_Metallico'].astype(str))
-    score=0.50*seen_lig+0.30*seen_metal+0.20*seen_salt
-    if score>=0.8: label='Inside domain'
-    elif score>=0.3: label='Intermediate / partial extrapolation'
+    identity_score=0.50*seen_lig+0.30*seen_metal+0.20*seen_salt
+    validity=prediction_validity(values)
+    # Identity support and numerical support are both required. A high categorical
+    # match cannot mask an extreme experimental condition.
+    score=float(0.60*identity_score+0.40*validity['score'])
+    if score>=0.78 and validity['reliable']: label='Inside domain'
+    elif score>=0.38 and validity['label']!='Outside validated experimental range': label='Intermediate / partial extrapolation'
     else: label='Outside domain'
-    return {'score':float(score),'label':label,'ligand_seen':seen_lig,'metal_seen':seen_metal,'salt_seen':seen_salt}
+    return {'score':score,'label':label,'ligand_seen':seen_lig,'metal_seen':seen_metal,'salt_seen':seen_salt,'identity_score':float(identity_score),'validity':validity}
 
 def similar(values,n=15):
     d=DB.copy(); metal=str(values.get('Metallo','')); fam=str(values.get('Famiglia_Legante',''))

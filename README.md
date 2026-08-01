@@ -79,8 +79,13 @@ Version 10.3 keeps the outcome predictor and optimizer scientifically separate.
 The included positive library contains 694 deduplicated crystalline-condition records covering 92 ligands and 20 metals. It is designed to be expanded with additional curated literature syntheses in future releases.
 
 
-## Interface update v10.4.0
+## Interface update v10.4.1
 - Press Enter in the ligand field to start resolution.
 - Reset parameters button restores prediction defaults.
 - Optimizer displays only the five strongest actionable proposals.
 - Internal recommendation metadata remains in the downloadable CSV and scientific scope panel.
+
+
+## Prediction validity gate (v10.4.1)
+
+The exact-condition predictor now reports whether numerical inputs lie within the experimentally supported range. Extreme temperature, reaction time, stoichiometry, reagent amount, volume, concentration, or mutually inconsistent ratio/amount inputs trigger an explicit reliability warning. The underlying probability is retained for transparency but is not presented as a validated success estimate outside the supported range. The applicability-domain score now combines chemical identity support with numerical-range support.
