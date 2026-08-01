@@ -59,5 +59,10 @@ The application does not store keys entered in the temporary local password fiel
 
 The literature-search interface no longer displays an API-key field. The temporary deployment key is defined once in `src/literature.py` as `TAVILY_API_KEY`; replace that single value when rotating the key.
 
-## Ligand consensus resolver (v9.6.0)
+## Ligand consensus resolver (v9.7.0)
 Ligand names are resolved using curated linker entries, OPSIN, PubChem and NCI Cactus. The app compares independently obtained structures and only accepts an identity automatically when the evidence is sufficiently consistent. Ambiguous results are displayed as candidate structures for explicit user confirmation.
+
+
+## Ligand resolver v9.7
+
+The resolver expands conservative name variants, queries multiple PubChem candidates and synonyms, standardizes structures with RDKit MolStandardize, and supports a portable `data/confirmed_ligands.json` cache. Tavily is used only to discover alternate identifiers, never as structural proof.

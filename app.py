@@ -6,17 +6,17 @@ import streamlit as st
 from rdkit import Chem
 from src.chem import METALS, FAMILIES, COUNTERIONS, infer_family, precursor_formula, parse_salt
 from src.engine import predict, applicability, similar, optimize, explain_prediction, DB
-from src.resolver import resolve_ligand
+from src.resolver import resolve_ligand, confirmed_entry
 from src.literature import search_literature
 
 # Temporary Tavily deployment key. Replace this value when rotating the key.
 TAVILY_DEPLOYMENT_KEY = "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"
 
-APP_VERSION = "9.6.0"
+APP_VERSION = "9.7.0"
 
 st.set_page_config(page_title="MOF Synthesis Assistant", page_icon="🧪", layout="wide")
-st.title("🧪 MOF Synthesis Assistant v9.6.0")
-st.caption("Version 9.6.0 · Consensus ligand resolver with OPSIN, PubChem and NCI Cactus")
+st.title("🧪 MOF Synthesis Assistant v9.7.0")
+st.caption("Version 9.7.0 · Expanded consensus resolver, multi-candidate PubChem search and portable confirmed-ligand cache")
 st.caption("Prediction, intuitive condition diagnosis, contextual optimization and recent literature search")
 page = st.sidebar.radio("Module", ["Predict synthesis", "Literature search", "Model validation", "About"])
 
@@ -57,7 +57,8 @@ def _resolved_identity(prefix, typed_ligand):
     state_key = prefix + "resolved_ligand"
     if st.button("Resolve ligand", key=prefix + "resolve", disabled=not typed_ligand, type="secondary"):
         with st.spinner("Resolving through curated entries, OPSIN, PubChem and NCI Cactus..."):
-            st.session_state[state_key] = resolve_ligand(typed_ligand)
+            cache_json = json.dumps(st.session_state.get("confirmed_ligands_cache", {}), sort_keys=True)
+            st.session_state[state_key] = resolve_ligand(typed_ligand, user_cache_json=cache_json)
 
     result = st.session_state.get(state_key)
     if result and result.get("query") != typed_ligand:
@@ -109,6 +110,9 @@ def _resolved_identity(prefix, typed_ligand):
                 confirmed["validation_notes"] = notes
                 confirmed["message"] = "Candidate identity confirmed by the user after consensus resolution."
                 st.session_state[state_key] = confirmed
+                cache = dict(st.session_state.get("confirmed_ligands_cache", {}))
+                cache.update(confirmed_entry(typed_ligand, confirmed))
+                st.session_state["confirmed_ligands_cache"] = cache
                 st.rerun()
         return result
 
@@ -186,6 +190,15 @@ def _resolved_identity(prefix, typed_ligand):
             ["Rotatable bonds", _descriptor_value(descriptors, "RotatableBonds")],
         ], columns=["Descriptor", "Value"])
         st.dataframe(descriptor_table, hide_index=True, use_container_width=True)
+
+    if st.session_state.get("confirmed_ligands_cache"):
+        cache_payload = json.dumps(st.session_state["confirmed_ligands_cache"], indent=2, ensure_ascii=False)
+        st.download_button(
+            "Download confirmed ligand cache", cache_payload,
+            file_name="confirmed_ligands.json", mime="application/json",
+            key=prefix + "download_confirmed_cache",
+            help="Add this file to data/confirmed_ligands.json in the repository to preserve confirmed identities across deployments.",
+        )
 
     with st.expander("View complete resolver details"):
         st.caption(result.get("message") or "Structure resolved and validated.")

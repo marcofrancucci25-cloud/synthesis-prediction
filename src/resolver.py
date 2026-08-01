@@ -1,11 +1,13 @@
 from __future__ import annotations
 
 import re
+import json
 import time
 import unicodedata
 from dataclasses import asdict, dataclass
 from functools import lru_cache
 from typing import Any
+from pathlib import Path
 from urllib.parse import quote
 
 import requests
@@ -13,10 +15,12 @@ from rdkit import Chem, RDLogger
 
 RDLogger.DisableLog("rdApp.error")
 from rdkit.Chem import Crippen, Descriptors, Lipinski, rdMolDescriptors
+from rdkit.Chem.MolStandardize import rdMolStandardize
 from rdkit.Chem.inchi import MolToInchiKey
 
 USER_AGENT = "MOF-Synthesis-Assistant/9.0 (chemical resolver; academic research)"
 DEFAULT_TIMEOUT = 5
+CONFIRMED_CACHE_PATH = Path(__file__).resolve().parents[1] / "data" / "confirmed_ligands.json"
 
 # Small curated alias layer: it accelerates common MOF linkers but is not a ligand database.
 ALIASES: dict[str, str] = {
@@ -77,6 +81,99 @@ SPECIALIST_AMBIGUOUS_PATTERNS = (
 
 CAS_RE = re.compile(r"^\d{2,7}-\d{2}-\d$")
 FORMULA_RE = re.compile(r"^(?:[A-Z][a-z]?\d*){2,}(?:[+-]\d*)?$")
+
+
+def _load_confirmed_cache(extra_cache_json: str = "") -> dict[str, dict[str, Any]]:
+    cache: dict[str, dict[str, Any]] = {}
+    try:
+        if CONFIRMED_CACHE_PATH.exists():
+            payload = json.loads(CONFIRMED_CACHE_PATH.read_text(encoding="utf-8"))
+            if isinstance(payload, dict):
+                cache.update(payload)
+    except Exception:
+        pass
+    if extra_cache_json:
+        try:
+            payload = json.loads(extra_cache_json)
+            if isinstance(payload, dict):
+                cache.update(payload)
+        except Exception:
+            pass
+    return cache
+
+
+def _query_variants(query: str) -> list[str]:
+    """Generate conservative alternate identifiers without deleting meaningful locants."""
+    q = normalize_query(query)
+    variants = [q]
+    variants += [
+        q.replace("'", "′"),
+        q.replace("′", "'"),
+        q.replace("-", " "),
+        re.sub(r"\s+", "", q),
+    ]
+    # Acid-form abbreviations: H2BDC -> BDC, H3BTC -> BTC.
+    compact = re.sub(r"[^A-Za-z0-9]+", "", q)
+    stripped = re.sub(r"^[Hh]\d+", "", compact)
+    if stripped and stripped != compact:
+        variants.append(stripped)
+    # Extract exact abbreviation in parentheses, preserving the original query.
+    match = re.search(r"\(([^)]+)\)", q)
+    if match:
+        variants.append(match.group(1).strip())
+    # Common spelling variants used in MOF papers.
+    substitutions = {
+        "bipirazolo": "bipyrazole", "bipirazolo": "bipyrazole",
+        "bipyrazol": "bipyrazole", "benzenedicarboxylic": "phthalic",
+    }
+    low = q.casefold()
+    for old, new in substitutions.items():
+        if old in low:
+            variants.append(re.sub(old, new, q, flags=re.I))
+    out=[]
+    seen=set()
+    for item in variants:
+        item=normalize_query(item)
+        key=item.casefold()
+        if item and key not in seen:
+            seen.add(key); out.append(item)
+    return out[:12]
+
+
+def _standardize_smiles(smiles: str) -> tuple[str, str] | None:
+    """RDKit parent/charge/tautomer standardization for candidate deduplication."""
+    mol = Chem.MolFromSmiles(smiles)
+    if mol is None:
+        return None
+    try:
+        mol = rdMolStandardize.FragmentParent(mol)
+        mol = rdMolStandardize.Normalizer().normalize(mol)
+        mol = rdMolStandardize.Reionizer().reionize(mol)
+        mol = rdMolStandardize.Uncharger().uncharge(mol)
+        mol = rdMolStandardize.TautomerEnumerator().Canonicalize(mol)
+    except Exception:
+        pass
+    full = Chem.MolToSmiles(mol, canonical=True, isomericSmiles=True)
+    connectivity = Chem.MolToSmiles(mol, canonical=True, isomericSmiles=False)
+    return full, connectivity
+
+
+def confirmed_entry(query: str, candidate: dict[str, Any]) -> dict[str, Any]:
+    """Return a portable cache record for a user-confirmed ligand identity."""
+    normalized = normalize_query(query).casefold()
+    return {
+        normalized: {
+            "query": query,
+            "title": candidate.get("title") or candidate.get("iupac_name") or query,
+            "iupac_name": candidate.get("iupac_name"),
+            "smiles": candidate.get("smiles"),
+            "molecular_formula": candidate.get("molecular_formula"),
+            "inchikey": candidate.get("inchikey"),
+            "source": candidate.get("source") or "user-confirmed resolver candidate",
+            "aliases": sorted(set([query, candidate.get("title") or "", candidate.get("iupac_name") or ""]) - {""}),
+            "confidence": "user confirmed",
+        }
+    }
 
 
 @dataclass
@@ -164,12 +261,7 @@ def _descriptors(smiles: str) -> dict[str, float | int] | None:
 
 
 def _canonicalize_smiles(smiles: str) -> tuple[str, str] | None:
-    mol = Chem.MolFromSmiles(smiles)
-    if mol is None:
-        return None
-    full = Chem.MolToSmiles(mol, canonical=True, isomericSmiles=True)
-    connectivity = Chem.MolToSmiles(mol, canonical=True, isomericSmiles=False)
-    return full, connectivity
+    return _standardize_smiles(smiles)
 
 
 def _request_json(url: str, timeout: int) -> dict[str, Any] | None:
@@ -299,6 +391,10 @@ def _score_candidate(candidate: ResolutionResult) -> float:
         score += 5
     notes = candidate.validation_notes or []
     score -= 18 * len([n for n in notes if "does not" in n.lower() or "mismatch" in n.lower()])
+    for note in notes:
+        if note.startswith("Synonym/name match bonus:"):
+            try: score += float(note.split(":",1)[1].strip())
+            except Exception: pass
     return max(0.0, min(100.0, score))
 
 
@@ -321,6 +417,50 @@ def _pubchem_properties(namespace: str, identifier: str, timeout: int) -> dict[s
     return rows[0] if rows else None
 
 
+def _pubchem_cids(namespace: str, identifier: str, timeout: int, *, word_search: bool = False, max_records: int = 12) -> list[int]:
+    suffix = "?name_type=word" if word_search and namespace == "name" else ""
+    joiner = "&" if suffix else "?"
+    url = ("https://pubchem.ncbi.nlm.nih.gov/rest/pug/compound/"
+           f"{namespace}/{quote(identifier, safe='')}/cids/JSON{suffix}{joiner}MaxRecords={max_records}")
+    payload = _request_json(url, timeout)
+    return list((payload or {}).get("IdentifierList", {}).get("CID", []))[:max_records]
+
+
+def _pubchem_synonyms(cid: int | str, timeout: int) -> list[str]:
+    url = f"https://pubchem.ncbi.nlm.nih.gov/rest/pug/compound/cid/{cid}/synonyms/JSON"
+    payload = _request_json(url, timeout)
+    rows = (payload or {}).get("InformationList", {}).get("Information", [])
+    synonyms = rows[0].get("Synonym", []) if rows else []
+    return [str(x) for x in synonyms[:80]]
+
+
+def _pubchem_candidates_for_name(name: str, timeout: int) -> list[dict[str, Any]]:
+    cids = _pubchem_cids("name", name, timeout, word_search=False)
+    if not cids:
+        cids = _pubchem_cids("name", name, timeout, word_search=True)
+    rows=[]
+    for cid in cids[:4]:
+        row=_pubchem_properties("cid", str(cid), timeout)
+        if row:
+            row["CID"] = cid
+            row["Synonyms"] = _pubchem_synonyms(cid, min(timeout, 3))
+            rows.append(row)
+    return rows
+
+
+def _synonym_match_score(query_variants: list[str], row: dict[str, Any]) -> float:
+    terms=[normalize_query(x).casefold() for x in query_variants]
+    names=[row.get("Title") or "", row.get("IUPACName") or ""] + list(row.get("Synonyms") or [])
+    names=[normalize_query(x).casefold() for x in names if x]
+    score=0.0
+    for q in terms:
+        if q in names:
+            score=max(score, 30.0)
+        elif any(q and (q in n or n in q) for n in names):
+            score=max(score, 16.0)
+    return score
+
+
 def _pubchem_formula_candidate(formula: str, timeout: int) -> tuple[dict[str, Any] | None, str | None]:
     # Formula searches are inherently ambiguous. Retrieve a short CID list and use the
     # first PubChem result only as an editable candidate, while surfacing the ambiguity.
@@ -338,6 +478,17 @@ def _pubchem_formula_candidate(formula: str, timeout: int) -> tuple[dict[str, An
         "The proposed structure must be checked manually or replaced with a name, CAS number or SMILES."
     )
     return row, warning
+
+
+def _pubchem_formula_candidates(formula: str, timeout: int) -> list[dict[str, Any]]:
+    cids = _pubchem_cids("formula", formula, timeout, max_records=12)
+    rows=[]
+    for cid in cids[:10]:
+        row=_pubchem_properties("cid", str(cid), timeout)
+        if row:
+            row["CID"] = cid
+            rows.append(row)
+    return rows
 
 
 def _result_from_pubchem(query: str, normalized: str, input_type: str, row: dict[str, Any], source: str,
@@ -445,12 +596,28 @@ def _local_structure_result(original: str, normalized: str, key: str) -> Resolut
         message="Resolved locally from a curated MOF-linker entry and validated against formula, mass and structural motifs.",
     )
 
-@lru_cache(maxsize=512)
-def resolve_ligand(query: str, timeout: int = DEFAULT_TIMEOUT) -> dict[str, Any]:
+@lru_cache(maxsize=1024)
+def resolve_ligand(query: str, timeout: int = DEFAULT_TIMEOUT, user_cache_json: str = "") -> dict[str, Any]:
     original = str(query or "")
     normalized = normalize_query(original)
     if not normalized:
         return ResolutionResult(False, original, normalized, "empty", message="Enter a ligand identifier.").to_dict()
+
+    cache = _load_confirmed_cache(user_cache_json)
+    cache_key = normalized.casefold()
+    cached = cache.get(cache_key)
+    if not cached:
+        for entry in cache.values():
+            aliases = [normalize_query(x).casefold() for x in entry.get("aliases", [])]
+            if cache_key in aliases:
+                cached = entry; break
+    if cached and cached.get("smiles"):
+        candidate = _candidate_from_smiles(original, normalized, "confirmed ligand cache", cached["smiles"],
+                                            "confirmed ligand cache / RDKit", cached)
+        if candidate:
+            candidate.confidence = "user confirmed"
+            candidate.validation_notes = ["Exact match in the portable confirmed-ligand cache."]
+            return candidate.to_dict()
 
     local = _local_structure_result(original, normalized, normalized.casefold())
     if local:
@@ -480,38 +647,80 @@ def resolve_ligand(query: str, timeout: int = DEFAULT_TIMEOUT) -> dict[str, Any]
             return candidate.to_dict()
 
     if input_type == "molecular formula":
-        row, warning = _pubchem_formula_candidate(aliased.replace(" ", ""), timeout)
-        if row:
-            result = _result_from_pubchem(original, normalized, input_type, row, "PubChem formula search", warning)
-            result.needs_confirmation = True
-            result.candidates = [_candidate_dict(result)]
-            result.success = False
-            result.message = "A formula alone is not structurally unique. Confirm the candidate or enter a name/SMILES."
-            return result.to_dict()
+        rows = _pubchem_formula_candidates(aliased.replace(" ", ""), timeout)
+        candidates=[]
+        for row in rows:
+            smiles=row.get("SMILES") or row.get("ConnectivitySMILES")
+            if smiles:
+                c=_candidate_from_smiles(original, normalized, input_type, smiles, "PubChem formula search", row)
+                if c: candidates.append(c)
+        candidates=_merge_candidates(candidates)
+        candidates.sort(key=_score_candidate, reverse=True)
+        if candidates:
+            return ResolutionResult(
+                False, original, normalized, input_type, confidence="confirmation required",
+                needs_confirmation=True, candidates=[_candidate_dict(c) for c in candidates[:10]],
+                ambiguity_warning=f"The formula matched {len(candidates)} distinct standardized structures.",
+                message="A molecular formula is not structurally unique. Select a candidate or enter a name/SMILES."
+            ).to_dict()
 
     candidates: list[ResolutionResult] = []
+    variants = _query_variants(aliased)
 
-    # OPSIN is strongest for systematic names and retains locants in the parsed structure.
-    opsin = _opsin_candidate(aliased, timeout)
-    if opsin:
-        c = _candidate_from_smiles(original, normalized, input_type, opsin["SMILES"], "OPSIN", opsin)
-        if c:
-            candidates.append(c)
+    # OPSIN is strongest for systematic names and retains locants.
+    for variant in variants[:2]:
+        opsin = _opsin_candidate(variant, timeout)
+        if opsin:
+            c = _candidate_from_smiles(original, normalized, input_type, opsin["SMILES"], "OPSIN", opsin)
+            if c:
+                c.validation_notes = list(c.validation_notes or []) + [f"Resolved from query variant: {variant}"]
+                candidates.append(c)
 
-    row = _pubchem_properties("name", aliased, timeout)
-    if row and (row.get("SMILES") or row.get("ConnectivitySMILES")):
-        c = _candidate_from_smiles(original, normalized, input_type,
-                                   row.get("SMILES") or row.get("ConnectivitySMILES"),
-                                   "PubChem PUG REST", row)
-        if c:
-            candidates.append(c)
+    # PubChem exact and word searches may expose multiple CIDs and synonyms.
+    for variant in variants[:3]:
+        for row in _pubchem_candidates_for_name(variant, timeout):
+            smiles = row.get("SMILES") or row.get("ConnectivitySMILES")
+            if not smiles:
+                continue
+            c = _candidate_from_smiles(original, normalized, input_type, smiles, "PubChem PUG REST", row)
+            if c:
+                bonus = _synonym_match_score(variants, row)
+                c.validation_notes = list(c.validation_notes or []) + [
+                    f"PubChem CID: {row.get('CID')}", f"Resolved from query variant: {variant}",
+                    f"Synonym/name match bonus: {bonus}"
+                ]
+                candidates.append(c)
+        if len(_merge_candidates(candidates)) >= 4:
+            break
 
-    cactus = _cactus_smiles(aliased, timeout)
-    if cactus:
-        metadata = _pubchem_properties("smiles", cactus, timeout) or {"Title": aliased}
-        c = _candidate_from_smiles(original, normalized, input_type, cactus, "NCI Cactus", metadata)
-        if c:
-            candidates.append(c)
+    # Cactus is retained as a secondary identifier resolver.
+    for variant in variants[:2] if len(_merge_candidates(candidates)) < 2 else []:
+        cactus = _cactus_smiles(variant, timeout)
+        if cactus:
+            metadata = _pubchem_properties("smiles", cactus, timeout) or {"Title": variant}
+            c = _candidate_from_smiles(original, normalized, input_type, cactus, "NCI Cactus", metadata)
+            if c:
+                c.validation_notes = list(c.validation_notes or []) + [f"Resolved from query variant: {variant}"]
+                candidates.append(c)
+
+    # Last fallback: Tavily is used only to discover alternate textual identifiers.
+    if not candidates:
+        try:
+            from src.literature import discover_ligand_identifiers
+            discovered = discover_ligand_identifiers(normalized, max_identifiers=8)
+        except Exception:
+            discovered = []
+        for identifier in discovered:
+            for row in _pubchem_candidates_for_name(identifier, timeout):
+                smiles = row.get("SMILES") or row.get("ConnectivitySMILES")
+                if smiles:
+                    c = _candidate_from_smiles(original, normalized, input_type, smiles,
+                                               "Tavily-discovered identifier + PubChem", row)
+                    if c:
+                        c.validation_notes = list(c.validation_notes or []) + [
+                            f"Alternate identifier discovered from scholarly web results: {identifier}"
+                        ]
+                        candidates.append(c)
 
     candidates = _merge_candidates(candidates)
     candidates.sort(key=_score_candidate, reverse=True)

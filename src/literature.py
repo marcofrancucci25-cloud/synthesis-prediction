@@ -140,3 +140,49 @@ def search_literature(
         reverse=True,
     )
     return normalized[: int(max_results)]
+
+
+CAS_RE = re.compile(r"\b\d{2,7}-\d{2}-\d\b")
+ABBREV_RE = re.compile(r"\(([A-Za-z][A-Za-z0-9'′\-]{1,20})\)")
+QUOTED_RE = re.compile(r'["“]([^"”]{5,120})["”]')
+
+
+def discover_ligand_identifiers(keyword: str, max_identifiers: int = 8) -> list[str]:
+    """Discover alternate names/CAS/abbreviations from scholarly snippets.
+
+    Tavily is never treated as a structure authority. Returned text is fed back
+    into OPSIN/PubChem/Cactus and must still pass structural validation.
+    """
+    query=(keyword or "").strip()
+    if not query:
+        return []
+    try:
+        from tavily import TavilyClient
+        client=TavilyClient(api_key=_api_key())
+        response=client.search(
+            query=f'"{query}" ligand MOF linker synonym CAS SMILES chemical name',
+            search_depth="advanced", topic="general", max_results=8,
+            include_answer=False, include_raw_content=False,
+            include_domains=TRUSTED_DOMAINS,
+        )
+    except Exception:
+        return []
+    candidates=[]
+    for item in response.get("results", []):
+        text=" ".join([str(item.get("title") or ""), str(item.get("content") or "")])
+        candidates.extend(CAS_RE.findall(text))
+        candidates.extend(ABBREV_RE.findall(text))
+        candidates.extend(QUOTED_RE.findall(text))
+    out=[]; seen=set()
+    for value in candidates:
+        value=" ".join(value.strip().split())
+        key=value.casefold()
+        if not value or key == query.casefold() or key in seen:
+            continue
+        # Avoid sentences and obvious non-identifiers.
+        if len(value) > 100 or len(value.split()) > 12:
+            continue
+        seen.add(key); out.append(value)
+        if len(out) >= max_identifiers:
+            break
+    return out

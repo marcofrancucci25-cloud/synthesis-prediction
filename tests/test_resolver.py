@@ -36,3 +36,18 @@ def test_generic_aminobipyrazole_is_rejected_as_ambiguous():
     assert not result["success"]
     assert result["confidence"] == "unresolved"
     assert "ambiguous" in result["message"].lower()
+
+
+def test_query_variants_and_cache():
+    import json
+    from src.resolver import resolve_ligand, confirmed_entry
+    candidate={"title":"Test ligand","smiles":"O=C(O)c1ccc(C(=O)O)cc1","source":"test"}
+    cache=confirmed_entry("my custom ligand", candidate)
+    result=resolve_ligand("my custom ligand", user_cache_json=json.dumps(cache))
+    assert result["success"]
+    assert result["confidence"] == "user confirmed"
+
+
+def test_formula_returns_confirmation_or_unresolved():
+    result=resolve_ligand("C8H6O4")
+    assert result.get("needs_confirmation") or not result.get("success")
