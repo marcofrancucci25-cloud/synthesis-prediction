@@ -42,11 +42,11 @@ from src.literature import search_literature
 # Temporary Tavily deployment key. Replace this value when rotating the key.
 TAVILY_DEPLOYMENT_KEY = "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"
 
-APP_VERSION = "10.3.0"
+APP_VERSION = "10.3.1"
 
 st.set_page_config(page_title="MOF Synthesis Assistant", page_icon="🧪", layout="wide")
-st.title("🧪 MOF Synthesis Assistant v10.3.0")
-st.caption("Version 10.3.0 · Hybrid optimizer: balanced outcome prediction + successful-synthesis recommendation layer")
+st.title("🧪 MOF Synthesis Assistant v10.3.1")
+st.caption("Version 10.3.1 · Streamlined top-5 optimizer results and faster ligand input workflow")
 st.caption("Prediction evaluates the exact entered conditions. Optimization separately combines three-class risk, successful precedents, feasibility and applicability while keeping only ligand and metal fixed.")
 page = st.sidebar.radio("Module", ["Predict synthesis", "Literature search", "Model validation", "About"])
 
@@ -83,12 +83,44 @@ def _descriptor_value(descriptors, key, suffix=""):
     return "—" if value is None else f"{value}{suffix}"
 
 
+def _resolve_ligand_from_input(prefix):
+    """Resolve the current ligand input when the user presses Enter.
+
+    Streamlit invokes this callback before rerunning the page, so the resolved
+    identity is already available when the interface is rendered again.
+    """
+    typed_ligand = str(st.session_state.get(prefix + "lig", "")).strip()
+    state_key = prefix + "resolved_ligand"
+    if not typed_ligand:
+        st.session_state.pop(state_key, None)
+        return
+    cache_json = json.dumps(st.session_state.get("confirmed_ligands_cache", {}), sort_keys=True)
+    st.session_state[state_key] = resolve_ligand(typed_ligand, user_cache_json=cache_json)
+
+
+def _reset_prediction_inputs(prefix="p"):
+    """Restore prediction widgets to their declared defaults."""
+    widget_suffixes = [
+        "ligand_mode", "lig", "resolved_ligand", "candidate_choice",
+        "fam", "metal", "ox", "counter", "hyd", "salt",
+        "solv", "add", "temp", "time", "ml", "mm", "ratio", "vol",
+    ]
+    for suffix in widget_suffixes:
+        st.session_state.pop(prefix + suffix, None)
+    for key in [
+        "prediction_result", "optimization_results", "optimization_metadata",
+        "joint_objective", "joint_max_temp", "joint_max_time", "joint_samples",
+        "joint_keep_precursor", "joint_keep_solvent", "joint_keep_additive",
+        "joint_banned",
+    ]:
+        st.session_state.pop(key, None)
+
+
 def _resolved_identity(prefix, typed_ligand):
     state_key = prefix + "resolved_ligand"
     if st.button("Resolve ligand", key=prefix + "resolve", disabled=not typed_ligand, type="secondary"):
         with st.spinner("Resolving through curated entries, OPSIN, PubChem and NCI Cactus..."):
-            cache_json = json.dumps(st.session_state.get("confirmed_ligands_cache", {}), sort_keys=True)
-            st.session_state[state_key] = resolve_ligand(typed_ligand, user_cache_json=cache_json)
+            _resolve_ligand_from_input(prefix)
 
     result = st.session_state.get(state_key)
     if result and result.get("query") != typed_ligand:
@@ -255,7 +287,7 @@ def input_form(prefix="p"):
     st.subheader("Ligand identity")
     mode=st.radio("Input type",["Name / abbreviation / CAS / formula","SMILES"],horizontal=True,key=prefix+"ligand_mode")
     placeholder="e.g. terephthalic acid, H2BDC, 100-21-0 or C8H6O4" if mode.startswith("Name") else "e.g. O=C(O)c1ccc(C(=O)O)cc1"
-    ligand=st.text_input("Ligand identifier",key=prefix+"lig",placeholder=placeholder)
+    ligand=st.text_input("Ligand identifier",key=prefix+"lig",placeholder=placeholder,on_change=_resolve_ligand_from_input,args=(prefix,),help="Type a name, abbreviation, CAS, formula or SMILES and press Enter to resolve it.")
     resolved=_resolved_identity(prefix,ligand)
     canonical_title=(resolved.get("title") or resolved.get("iupac_name")) if resolved and resolved.get("success") else None
     inferred=infer_family(" ".join(filter(None,[ligand,canonical_title])))
@@ -363,12 +395,35 @@ def render_prediction(result):
         b.metric("Best proposed",f"{best:.1%}")
         c.metric("Expected improvement",f"{best-pcr:+.1%}")
         d.metric("Feasible candidates searched",f"{(meta or {}).get('feasible_candidates',len(out)):,}")
-        show_cols=['Rank','Strategy','Generation_mode','Evidence_tier','Positive_support_score','Positive_support_count','Nearest_positive_ID','Sale_Metallico','Oxidation_State','Hydration_Number','Solvente','Additivo_Colinker','Temperatura_C','Tempo_ore','mmol_Legante','mmol_Sale','Rapporto_LM','Volume solvente','P_Failed','P_Amorphous','P_Crystalline','AD_score','Feasibility_score','Pareto_optimal','Optimization_score']
-        display=out[[c for c in show_cols if c in out.columns]].copy()
-        for col in ['P_Failed','P_Amorphous','P_Crystalline','AD_score','Feasibility_score','Positive_support_score','Optimization_score']:
-            if col in display: display[col]=display[col].map(lambda x:f"{float(x):.1%}" if col.startswith('P_') else f"{float(x):.3f}")
-        for col in ['Temperatura_C','Tempo_ore','mmol_Legante','mmol_Sale','Rapporto_LM','Volume solvente','Hydration_Number']:
+        # Keep internal recommendation metadata available for downloads and scientific
+        # diagnostics, but present researchers with only the five strongest, directly
+        # actionable experimental proposals.
+        ranked = out.copy()
+        if 'Optimization_score' in ranked.columns:
+            ranked = ranked.sort_values('Optimization_score', ascending=False)
+        ranked = ranked.head(5).reset_index(drop=True)
+        ranked['Rank'] = range(1, len(ranked) + 1)
+        show_cols=['Rank','Sale_Metallico','Oxidation_State','Hydration_Number','Solvente','Additivo_Colinker','Temperatura_C','Tempo_ore','mmol_Legante','mmol_Sale','Rapporto_LM','Volume solvente','P_Failed','P_Amorphous','P_Crystalline','AD_score','Feasibility_score','Optimization_score']
+        display=ranked[[c for c in show_cols if c in ranked.columns]].copy()
+        rename_cols={
+            'Sale_Metallico':'Metal precursor', 'Oxidation_State':'Ox. state',
+            'Hydration_Number':'Hydration', 'Solvente':'Solvent',
+            'Additivo_Colinker':'Additive', 'Temperatura_C':'Temperature (°C)',
+            'Tempo_ore':'Time (h)', 'mmol_Legante':'Ligand (mmol)',
+            'mmol_Sale':'Metal (mmol)', 'Rapporto_LM':'L:M ratio',
+            'Volume solvente':'Solvent volume (mL)', 'P_Failed':'P(failed)',
+            'P_Amorphous':'P(amorphous)', 'P_Crystalline':'P(crystalline)',
+            'AD_score':'Domain score', 'Feasibility_score':'Feasibility',
+            'Optimization_score':'Overall score',
+        }
+        display=display.rename(columns=rename_cols)
+        for col in ['P(failed)','P(amorphous)','P(crystalline)']:
+            if col in display: display[col]=display[col].map(lambda x:f"{float(x):.1%}")
+        for col in ['Domain score','Feasibility','Overall score']:
+            if col in display: display[col]=display[col].map(lambda x:f"{float(x):.3f}")
+        for col in ['Temperature (°C)','Time (h)','Ligand (mmol)','Metal (mmol)','L:M ratio','Solvent volume (mL)','Hydration']:
             if col in display: display[col]=pd.to_numeric(display[col],errors='coerce').round(3)
+        st.caption("Top five proposals ranked by the overall hybrid optimization score.")
         st.dataframe(display,use_container_width=True,hide_index=True)
         with st.expander("Scientific scope of this optimization"):
             st.write("**Fixed:**",", ".join((meta or {}).get('fixed_variables',[])))
@@ -384,10 +439,16 @@ def render_prediction(result):
 
 if page=="Predict synthesis":
     values=input_form("p")
-    if st.button("Run prediction",type="primary"):
+    action_left, action_right = st.columns([1, 1])
+    with action_left:
+        run_prediction = st.button("Run prediction", type="primary", use_container_width=True)
+    with action_right:
+        st.button("Reset parameters", on_click=_reset_prediction_inputs, args=("p",), use_container_width=True)
+    if run_prediction:
         _,probabilities,predicted=predict(values); ad=applicability(values); influence,_=explain_prediction(values)
         st.session_state['prediction_result']={'values':values,'probabilities':probabilities,'predicted':predicted,'ad':ad,'influence':influence}
         st.session_state.pop('optimization_results',None)
+        st.session_state.pop('optimization_metadata',None)
     if 'prediction_result' in st.session_state: render_prediction(st.session_state['prediction_result'])
 elif page=="Literature search":
     st.subheader("🔎 Recent scientific literature")

@@ -77,3 +77,10 @@ Version 10.3 keeps the outcome predictor and optimizer scientifically separate.
 - Every proposal is ranked using predicted crystallinity, positive precedent, applicability domain, feasibility, and objective-specific penalties.
 
 The included positive library contains 694 deduplicated crystalline-condition records covering 92 ligands and 20 metals. It is designed to be expanded with additional curated literature syntheses in future releases.
+
+
+## Interface update v10.3.1
+- Press Enter in the ligand field to start resolution.
+- Reset parameters button restores prediction defaults.
+- Optimizer displays only the five strongest actionable proposals.
+- Internal recommendation metadata remains in the downloadable CSV and scientific scope panel.
