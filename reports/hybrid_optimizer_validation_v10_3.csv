@@ -1,0 +1,5 @@
+Ligand,Metal,returned,best_P_crystalline,best_positive_support,min_feasibility,fixed_ligand_ok,fixed_metal_ok,runtime_s,template_candidates,exploration_candidates
+"3,3'-dinitro-4,4'-bipyrazole",Zn,5,0.7485843954494867,0.7811340489163081,1.0,True,True,1.613976001739502,360,140
+3-MePz-4-COOH,Cu,5,0.7044247007289216,0.6977488780070331,1.0,True,True,1.5279896259307861,360,140
+"3,3'-dinitro-4,4'-bipyrazole",Co,5,0.7285623256558408,0.8590113064975933,1.0,True,True,1.6266398429870605,360,140
+"1,4-Benzenedicarboxylic acid (H2BDC)",Zr,5,0.8451369842423833,0.8359910954511578,1.0,True,True,1.5836472511291504,360,140

@@ -1,0 +1,12 @@
+{
+  "version": "10.3.0",
+  "rows": 694,
+  "unique_ligands": 92,
+  "unique_metals": 20,
+  "source_counts": {
+    "development_positive": 555,
+    "external_positive_after_locked_evaluation": 139
+  },
+  "purpose": "Positive-condition recommendation and support scoring only. Not used to retrain the balanced outcome predictor.",
+  "publication_bias_warning": "Positive-only records cannot estimate absolute synthesis success probabilities and are therefore combined with the frozen three-class predictor."
+}

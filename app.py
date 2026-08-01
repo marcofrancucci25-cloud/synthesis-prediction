@@ -42,12 +42,12 @@ from src.literature import search_literature
 # Temporary Tavily deployment key. Replace this value when rotating the key.
 TAVILY_DEPLOYMENT_KEY = "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"
 
-APP_VERSION = "10.0.1"
+APP_VERSION = "10.3.0"
 
 st.set_page_config(page_title="MOF Synthesis Assistant", page_icon="🧪", layout="wide")
-st.title("🧪 MOF Synthesis Assistant v10.0.1")
-st.caption("Version 10.0.1 · Separate prediction engine and joint multivariable synthesis optimizer")
-st.caption("Predict entered conditions first; then jointly optimize every model-supported variable while keeping only ligand and metal fixed")
+st.title("🧪 MOF Synthesis Assistant v10.3.0")
+st.caption("Version 10.3.0 · Hybrid optimizer: balanced outcome prediction + successful-synthesis recommendation layer")
+st.caption("Prediction evaluates the exact entered conditions. Optimization separately combines three-class risk, successful precedents, feasibility and applicability while keeping only ligand and metal fixed.")
 page = st.sidebar.radio("Module", ["Predict synthesis", "Literature search", "Model validation", "About"])
 
 
@@ -323,8 +323,8 @@ def render_prediction(result):
             for _,r in favorable.iterrows(): st.write(f"**{r.Parameter}:** current value `{r.Current}` is locally favorable.")
     if not ad['ligand_seen']: st.warning("The ligand was not observed exactly in training. Chemical recognition does not remove model extrapolation.")
     if not ad['metal_seen']: st.warning("The selected metal was not observed in training; uncertainty remains high.")
-    st.subheader("Joint synthesis optimizer")
-    st.caption("Prediction and optimization are separate: the prediction above evaluates exactly what you entered. The optimizer below keeps only ligand and metal fixed and searches all other variables learned by the frozen model together.")
+    st.subheader("Hybrid joint synthesis optimizer")
+    st.caption("Prediction and optimization are separate. The optimizer keeps only ligand and metal fixed, generates coherent condition sets from successful precedents, explores new combinations, and re-scores every proposal with the balanced three-class predictor.")
     with st.expander("Configure multivariable optimization", expanded=pcr < 0.65):
         objective=st.selectbox("Optimization objective",[
             "Maximum crystallinity","Balanced conditions","Conservative optimization","Green synthesis","Fast synthesis"
@@ -346,7 +346,7 @@ def render_prediction(result):
                 "keep_precursor":keep_precursor,"keep_solvent":keep_solvent,"keep_additive":keep_additive,
                 "banned_solvents":[x.strip() for x in banned_text.split(',') if x.strip()],
             }
-            with st.spinner("Jointly exploring precursor, hydration, oxidation state, solvent, additive, temperature, time, amounts, ratio and volume..."):
+            with st.spinner("Combining successful synthesis templates with broad multivariable exploration, then evaluating risk, feasibility and applicability..."):
                 try:
                     out,meta=optimize_joint(values,objective=objective,n_samples=samples,top_n=12,constraints=constraints)
                     st.session_state['optimization_results']=out
@@ -363,9 +363,9 @@ def render_prediction(result):
         b.metric("Best proposed",f"{best:.1%}")
         c.metric("Expected improvement",f"{best-pcr:+.1%}")
         d.metric("Feasible candidates searched",f"{(meta or {}).get('feasible_candidates',len(out)):,}")
-        show_cols=['Rank','Strategy','Sale_Metallico','Oxidation_State','Hydration_Number','Solvente','Additivo_Colinker','Temperatura_C','Tempo_ore','mmol_Legante','mmol_Sale','Rapporto_LM','Volume solvente','P_Failed','P_Amorphous','P_Crystalline','AD_score','Feasibility_score','Pareto_optimal','Optimization_score']
+        show_cols=['Rank','Strategy','Generation_mode','Evidence_tier','Positive_support_score','Positive_support_count','Nearest_positive_ID','Sale_Metallico','Oxidation_State','Hydration_Number','Solvente','Additivo_Colinker','Temperatura_C','Tempo_ore','mmol_Legante','mmol_Sale','Rapporto_LM','Volume solvente','P_Failed','P_Amorphous','P_Crystalline','AD_score','Feasibility_score','Pareto_optimal','Optimization_score']
         display=out[[c for c in show_cols if c in out.columns]].copy()
-        for col in ['P_Failed','P_Amorphous','P_Crystalline','AD_score','Feasibility_score','Optimization_score']:
+        for col in ['P_Failed','P_Amorphous','P_Crystalline','AD_score','Feasibility_score','Positive_support_score','Optimization_score']:
             if col in display: display[col]=display[col].map(lambda x:f"{float(x):.1%}" if col.startswith('P_') else f"{float(x):.3f}")
         for col in ['Temperatura_C','Tempo_ore','mmol_Legante','mmol_Sale','Rapporto_LM','Volume solvente','Hydration_Number']:
             if col in display: display[col]=pd.to_numeric(display[col],errors='coerce').round(3)
@@ -373,8 +373,10 @@ def render_prediction(result):
         with st.expander("Scientific scope of this optimization"):
             st.write("**Fixed:**",", ".join((meta or {}).get('fixed_variables',[])))
             st.write("**Jointly optimized:**",", ".join((meta or {}).get('optimized_variables',[])))
+            st.write("**Successful synthesis records available:**", f"{(meta or {}).get('positive_library_rows',0):,}")
+            st.write("**Candidate generation:**", f"{(meta or {}).get('template_candidates',0):,} successful-template mutations + {(meta or {}).get('exploration_candidates',0):,} broad exploratory candidates")
             st.write("**Not optimized yet because absent from the frozen model:**",", ".join((meta or {}).get('unsupported_not_optimized',[])))
-            st.warning("These are model-ranked experimental hypotheses, not guaranteed synthesis conditions. Confirm experimentally and feed outcomes into a future active-learning dataset.")
+            st.warning("Successful-synthesis support is a plausibility score, not an absolute probability. These remain model-ranked experimental hypotheses and require experimental confirmation.")
         st.download_button("Download joint experimental plan",out.to_csv(index=False).encode(),"mof_joint_optimization_plan.csv","text/csv")
     with st.expander("Similar experimental records"):
         st.dataframe(similar(values),use_container_width=True)
@@ -444,10 +446,10 @@ elif page=="Literature search":
 elif page=="Model validation":
     root=Path(__file__).parent; metrics=json.loads((root/"reports/external_metrics_v8_0.json").read_text())
     st.subheader("Ligand-group external test of the current predictive core")
-    st.info("v10.0 separates exact-condition prediction from joint multivariable optimization. The predictive core and its external validation remain frozen v8.0; optimizer outputs are ranked hypotheses over model-supported variables.")
+    st.info("v10.3 separates exact-condition prediction from a hybrid optimizer. The balanced predictive core remains frozen; a distinct positive synthesis library guides coherent recommendations without being used as a substitute for negative data.")
     st.json(metrics); st.dataframe(pd.read_csv(root/"reports/external_class_metrics_v8_0.csv"),use_container_width=True); st.dataframe(pd.read_csv(root/"reports/external_confusion_matrix_v8_0.csv",index_col=0),use_container_width=True)
 else:
     st.markdown("""### Scope and scientific limitations
-Version 10.0 separates the Prediction Engine from the Joint Optimization Engine. Prediction evaluates the exact user-entered conditions. Optimization keeps ligand and metal fixed while jointly varying all other variables learned by the frozen predictive core.
+Version 10.3 separates the Prediction Engine from the Hybrid Optimization Engine. Prediction evaluates the exact user-entered conditions. Optimization keeps ligand and metal fixed, combines successful synthesis precedents with broad search, and evaluates each proposal using the balanced predictor, applicability and feasibility.
 
 The explanation is **model-based and descriptive, not causal**. Optimized conditions are hypotheses for experimental prioritization, not guarantees of MOF formation. The predictive core remains the frozen v8.0 ensemble; the literature module is a retrieval aid and this interface update does not constitute a new external validation.""")

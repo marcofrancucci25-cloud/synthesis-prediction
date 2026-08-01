@@ -65,3 +65,15 @@ Ligand names are resolved using curated linker entries, OPSIN, PubChem and NCI C
 
 ## v10.0 joint optimization
 Prediction evaluates exact input conditions. The optimizer keeps only ligand and metal fixed and jointly searches all other model-supported variables, with feasibility, domain and Pareto controls. See `reports/SCIENTIFIC_UPDATE_v10_0.md`.
+
+## v10.3 — Hybrid successful-synthesis optimizer
+
+Version 10.3 keeps the outcome predictor and optimizer scientifically separate.
+
+- The **Prediction Engine** remains the frozen, balanced three-class model and estimates failed/no useful product, amorphous/uncertain product, and crystalline MOF.
+- The **Hybrid Optimization Engine** uses a separate positive synthesis library to generate coherent joint-condition templates and to score successful-synthesis precedent.
+- Positive-only records never replace the balanced predictor and are not interpreted as an absolute probability of success.
+- Ligand and metal remain fixed; precursor, hydration, oxidation state, solvent, additive, temperature, time, amounts, ratio, and solvent volume are jointly searched.
+- Every proposal is ranked using predicted crystallinity, positive precedent, applicability domain, feasibility, and objective-specific penalties.
+
+The included positive library contains 694 deduplicated crystalline-condition records covering 92 ligands and 20 metals. It is designed to be expanded with additional curated literature syntheses in future releases.

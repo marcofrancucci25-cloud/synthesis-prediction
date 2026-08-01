@@ -1,0 +1,13 @@
+{
+  "version": "10.3.0",
+  "positive_library_rows": 694,
+  "positive_unique_ligands": 92,
+  "positive_unique_metals": 20,
+  "prediction_dataset_rows": 1078,
+  "automated_tests": "11 passed",
+  "validation_systems": 4,
+  "all_identity_invariants_passed": true,
+  "all_scores_bounded": true,
+  "scientific_scope": "Positive library guides condition generation and plausibility only; the frozen balanced three-class model remains the source of outcome probabilities.",
+  "limitation": "The included positive library contains curated records already available in the project. It is not yet a comprehensive literature-mined corpus."
+}
