@@ -5,18 +5,48 @@ import pandas as pd
 import streamlit as st
 from rdkit import Chem
 from src.chem import METALS, FAMILIES, COUNTERIONS, infer_family, precursor_formula, parse_salt
-from src.engine import predict, applicability, similar, optimize_joint, explain_prediction, DB
+import src.engine as engine
+
+predict = engine.predict
+applicability = engine.applicability
+similar = engine.similar
+explain_prediction = engine.explain_prediction
+DB = engine.DB
+
+def optimize_joint(*args, **kwargs):
+    """Compatibility-safe joint optimizer loader.
+
+    Keeps the app online even if Streamlit briefly serves a mixed Git revision
+    during deployment. The preferred implementation is engine.optimize_joint;
+    the older engine.optimize wrapper is used only as a temporary fallback.
+    """
+    fn = getattr(engine, "optimize_joint", None)
+    if fn is not None:
+        return fn(*args, **kwargs)
+    legacy = getattr(engine, "optimize", None)
+    if legacy is None:
+        raise RuntimeError(
+            "Joint optimizer module is unavailable. Replace src/engine.py and "
+            "src/optimizer.py with the files from the same release."
+        )
+    values = args[0] if args else kwargs.get("values")
+    top_n = kwargs.get("top_n", 10)
+    result = legacy(values, top_n=top_n)
+    return result, {
+        "compatibility_fallback": True,
+        "message": "Legacy optimizer fallback used; upload the complete v10.0.1 src folder."
+    }
 from src.resolver import resolve_ligand, confirmed_entry
 from src.literature import search_literature
 
 # Temporary Tavily deployment key. Replace this value when rotating the key.
 TAVILY_DEPLOYMENT_KEY = "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"
 
-APP_VERSION = "10.0.0"
+APP_VERSION = "10.0.1"
 
 st.set_page_config(page_title="MOF Synthesis Assistant", page_icon="🧪", layout="wide")
-st.title("🧪 MOF Synthesis Assistant v10.0.0")
-st.caption("Version 10.0.0 · Separate prediction engine and joint multivariable synthesis optimizer")
+st.title("🧪 MOF Synthesis Assistant v10.0.1")
+st.caption("Version 10.0.1 · Separate prediction engine and joint multivariable synthesis optimizer")
 st.caption("Predict entered conditions first; then jointly optimize every model-supported variable while keeping only ligand and metal fixed")
 page = st.sidebar.radio("Module", ["Predict synthesis", "Literature search", "Model validation", "About"])
 
