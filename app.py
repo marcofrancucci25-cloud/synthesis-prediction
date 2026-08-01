@@ -5,19 +5,19 @@ import pandas as pd
 import streamlit as st
 from rdkit import Chem
 from src.chem import METALS, FAMILIES, COUNTERIONS, infer_family, precursor_formula, parse_salt
-from src.engine import predict, applicability, similar, optimize, explain_prediction, DB
+from src.engine import predict, applicability, similar, optimize_joint, explain_prediction, DB
 from src.resolver import resolve_ligand, confirmed_entry
 from src.literature import search_literature
 
 # Temporary Tavily deployment key. Replace this value when rotating the key.
 TAVILY_DEPLOYMENT_KEY = "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"
 
-APP_VERSION = "9.7.0"
+APP_VERSION = "10.0.0"
 
 st.set_page_config(page_title="MOF Synthesis Assistant", page_icon="🧪", layout="wide")
-st.title("🧪 MOF Synthesis Assistant v9.7.0")
-st.caption("Version 9.7.0 · Expanded consensus resolver, multi-candidate PubChem search and portable confirmed-ligand cache")
-st.caption("Prediction, intuitive condition diagnosis, contextual optimization and recent literature search")
+st.title("🧪 MOF Synthesis Assistant v10.0.0")
+st.caption("Version 10.0.0 · Separate prediction engine and joint multivariable synthesis optimizer")
+st.caption("Predict entered conditions first; then jointly optimize every model-supported variable while keeping only ligand and metal fixed")
 page = st.sidebar.radio("Module", ["Predict synthesis", "Literature search", "Model validation", "About"])
 
 
@@ -293,19 +293,59 @@ def render_prediction(result):
             for _,r in favorable.iterrows(): st.write(f"**{r.Parameter}:** current value `{r.Current}` is locally favorable.")
     if not ad['ligand_seen']: st.warning("The ligand was not observed exactly in training. Chemical recognition does not remove model extrapolation.")
     if not ad['metal_seen']: st.warning("The selected metal was not observed in training; uncertainty remains high.")
-    st.subheader("Next step")
-    button_label="Optimize synthesis conditions" if pcr<0.65 else "Explore alternative conditions"
-    if st.button(button_label,type="primary",key="context_optimize"):
-        with st.spinner("Searching plausible conditions while keeping the metal–ligand identity fixed..."):
-            st.session_state['optimization_results']=optimize(values,10)
+    st.subheader("Joint synthesis optimizer")
+    st.caption("Prediction and optimization are separate: the prediction above evaluates exactly what you entered. The optimizer below keeps only ligand and metal fixed and searches all other variables learned by the frozen model together.")
+    with st.expander("Configure multivariable optimization", expanded=pcr < 0.65):
+        objective=st.selectbox("Optimization objective",[
+            "Maximum crystallinity","Balanced conditions","Conservative optimization","Green synthesis","Fast synthesis"
+        ],index=1,key="joint_objective")
+        o1,o2,o3=st.columns(3)
+        max_temp=o1.number_input("Maximum temperature (°C)",40.0,300.0,180.0,key="joint_max_temp")
+        max_time=o2.number_input("Maximum time (h)",0.5,500.0,96.0,key="joint_max_time")
+        samples=o3.select_slider("Search depth",options=[750,1500,2500,4000,6000],value=2500,key="joint_samples")
+        c1,c2,c3=st.columns(3)
+        keep_precursor=c1.checkbox("Keep current metal precursor",value=False,key="joint_keep_precursor")
+        keep_solvent=c2.checkbox("Keep current solvent",value=False,key="joint_keep_solvent")
+        keep_additive=c3.checkbox("Keep current additive",value=False,key="joint_keep_additive")
+        banned_text=st.text_input("Excluded solvents (comma-separated, optional)",placeholder="e.g. DMF, NMP",key="joint_banned")
+        st.caption("Variables not learned by the frozen model—such as pH, heating ramp, cooling rate and addition order—are not optimized yet and are explicitly reported as unsupported.")
+        button_label="Optimize synthesis conditions" if pcr<0.65 else "Explore joint alternatives"
+        if st.button(button_label,type="primary",key="context_optimize"):
+            constraints={
+                "max_temperature":max_temp,"max_time":max_time,
+                "keep_precursor":keep_precursor,"keep_solvent":keep_solvent,"keep_additive":keep_additive,
+                "banned_solvents":[x.strip() for x in banned_text.split(',') if x.strip()],
+            }
+            with st.spinner("Jointly exploring precursor, hydration, oxidation state, solvent, additive, temperature, time, amounts, ratio and volume..."):
+                try:
+                    out,meta=optimize_joint(values,objective=objective,n_samples=samples,top_n=12,constraints=constraints)
+                    st.session_state['optimization_results']=out
+                    st.session_state['optimization_metadata']=meta
+                except Exception as exc:
+                    st.error(f"Joint optimization failed: {exc}")
     out=st.session_state.get('optimization_results')
-    if out is not None:
-        st.subheader("Recommended conditions")
-        best=float(out.iloc[0]['P_Crystalline']) if len(out) else pcr
-        a,b,c=st.columns(3); a.metric("Current P(crystalline)",f"{pcr:.1%}"); b.metric("Best proposed",f"{best:.1%}"); c.metric("Expected improvement",f"{best-pcr:+.1%}")
-        show_cols=['Temperatura_C','Tempo_ore','Rapporto_LM','Solvente','Additivo_Colinker','P_Crystalline','AD_score','Optimized_score']
-        st.dataframe(out[[c for c in show_cols if c in out.columns]],use_container_width=True,hide_index=True)
-        st.download_button("Download optimized conditions",out.to_csv(index=False).encode(),"mof_optimized_conditions.csv","text/csv")
+    meta=st.session_state.get('optimization_metadata')
+    if out is not None and len(out):
+        st.subheader("Pareto-ranked experimental proposals")
+        best=float(out['P_Crystalline'].max())
+        a,b,c,d=st.columns(4)
+        a.metric("Current P(crystalline)",f"{pcr:.1%}")
+        b.metric("Best proposed",f"{best:.1%}")
+        c.metric("Expected improvement",f"{best-pcr:+.1%}")
+        d.metric("Feasible candidates searched",f"{(meta or {}).get('feasible_candidates',len(out)):,}")
+        show_cols=['Rank','Strategy','Sale_Metallico','Oxidation_State','Hydration_Number','Solvente','Additivo_Colinker','Temperatura_C','Tempo_ore','mmol_Legante','mmol_Sale','Rapporto_LM','Volume solvente','P_Failed','P_Amorphous','P_Crystalline','AD_score','Feasibility_score','Pareto_optimal','Optimization_score']
+        display=out[[c for c in show_cols if c in out.columns]].copy()
+        for col in ['P_Failed','P_Amorphous','P_Crystalline','AD_score','Feasibility_score','Optimization_score']:
+            if col in display: display[col]=display[col].map(lambda x:f"{float(x):.1%}" if col.startswith('P_') else f"{float(x):.3f}")
+        for col in ['Temperatura_C','Tempo_ore','mmol_Legante','mmol_Sale','Rapporto_LM','Volume solvente','Hydration_Number']:
+            if col in display: display[col]=pd.to_numeric(display[col],errors='coerce').round(3)
+        st.dataframe(display,use_container_width=True,hide_index=True)
+        with st.expander("Scientific scope of this optimization"):
+            st.write("**Fixed:**",", ".join((meta or {}).get('fixed_variables',[])))
+            st.write("**Jointly optimized:**",", ".join((meta or {}).get('optimized_variables',[])))
+            st.write("**Not optimized yet because absent from the frozen model:**",", ".join((meta or {}).get('unsupported_not_optimized',[])))
+            st.warning("These are model-ranked experimental hypotheses, not guaranteed synthesis conditions. Confirm experimentally and feed outcomes into a future active-learning dataset.")
+        st.download_button("Download joint experimental plan",out.to_csv(index=False).encode(),"mof_joint_optimization_plan.csv","text/csv")
     with st.expander("Similar experimental records"):
         st.dataframe(similar(values),use_container_width=True)
 
@@ -374,10 +414,10 @@ elif page=="Literature search":
 elif page=="Model validation":
     root=Path(__file__).parent; metrics=json.loads((root/"reports/external_metrics_v8_0.json").read_text())
     st.subheader("Ligand-group external test of the current predictive core")
-    st.info("v9.4 updates the user workflow and adds a curated Tavily literature-search interface and local sensitivity display. The frozen predictive core and external validation remain v8.0.")
+    st.info("v10.0 separates exact-condition prediction from joint multivariable optimization. The predictive core and its external validation remain frozen v8.0; optimizer outputs are ranked hypotheses over model-supported variables.")
     st.json(metrics); st.dataframe(pd.read_csv(root/"reports/external_class_metrics_v8_0.csv"),use_container_width=True); st.dataframe(pd.read_csv(root/"reports/external_confusion_matrix_v8_0.csv",index_col=0),use_container_width=True)
 else:
     st.markdown("""### Scope and scientific limitations
-Version 9.4 integrates prediction and optimization into one workflow and replaces the default technical explanation with an intuitive local-sensitivity summary. The optimizer keeps the selected metal–ligand identity fixed and varies only experimental conditions.
+Version 10.0 separates the Prediction Engine from the Joint Optimization Engine. Prediction evaluates the exact user-entered conditions. Optimization keeps ligand and metal fixed while jointly varying all other variables learned by the frozen predictive core.
 
 The explanation is **model-based and descriptive, not causal**. Optimized conditions are hypotheses for experimental prioritization, not guarantees of MOF formation. The predictive core remains the frozen v8.0 ensemble; the literature module is a retrieval aid and this interface update does not constitute a new external validation.""")

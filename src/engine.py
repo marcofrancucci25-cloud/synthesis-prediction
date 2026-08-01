@@ -1,6 +1,7 @@
 from pathlib import Path
 import json, joblib, numpy as np, pandas as pd
 from .chem import build_row
+from .optimizer import joint_optimize
 ROOT=Path(__file__).resolve().parents[1]
 ART=joblib.load(ROOT/'models/MOF_ChemAware_Ensemble_v8_0.joblib')
 SCHEMA=json.loads((ROOT/'models/feature_schema_v8_0.json').read_text())
@@ -88,24 +89,15 @@ def explain_prediction(values):
     return pd.DataFrame(rows).sort_values('Influence',ascending=False).reset_index(drop=True), base_cryst
 
 
-def optimize(values,top_n=10):
-    base=dict(values); temps=sorted(set([max(20,float(base['Temperatura_C'])+x) for x in (-40,-20,0,20,40)]))
-    times=sorted(set([max(0.5,float(base['Tempo_ore'])*x) for x in (0.5,1,2)]))
-    ratios=sorted(set([max(0.1,float(base['Rapporto_LM'])+x) for x in (-1,-0.5,0,0.5,1)]))
-    solvents=list(DB['Solvente'].dropna().astype(str).value_counts().head(8).index)
-    raw=[]
-    for t in temps:
-      for h in times:
-       for r in ratios:
-        for solv in solvents:
-         v=dict(base); v.update({'Temperatura_C':t,'Tempo_ore':h,'Rapporto_LM':r,'Solvente':solv}); raw.append(v)
-    engineered=pd.concat([build_row(v) for v in raw],ignore_index=True)
-    for c in FEATURES:
-        if c not in engineered: engineered[c]=np.nan
-    x=engineered[FEATURES]
-    probs=ART['weights'][0]*ART['rf_model'].predict_proba(x)+ART['weights'][1]*ART['ligand_text_model'].predict_proba(x)
-    ad=applicability(base); ad_score=ad['score']
-    out=pd.DataFrame(raw)
-    out['P_Failed']=probs[:,0]; out['P_Amorphous']=probs[:,1]; out['P_Crystalline']=probs[:,2]
-    out['AD_score']=ad_score; out['Optimized_score']=out['P_Crystalline']*(0.65+0.35*ad_score)
-    return out.sort_values(['Optimized_score','P_Crystalline'],ascending=False).drop_duplicates(['Temperatura_C','Tempo_ore','Rapporto_LM','Solvente']).head(top_n)
+
+def optimize_joint(values, objective="Balanced conditions", n_samples=2500, top_n=12, constraints=None):
+    return joint_optimize(
+        values, model_artifact=ART, features=FEATURES, db=DB,
+        objective=objective, n_samples=n_samples, top_n=top_n,
+        constraints=constraints or {},
+    )
+
+# Compatibility wrapper retained for older callers.
+def optimize(values, top_n=10):
+    results, _ = optimize_joint(values, objective="Balanced conditions", n_samples=1500, top_n=top_n)
+    return results
