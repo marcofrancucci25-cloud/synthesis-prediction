@@ -98,6 +98,9 @@ class ResolutionResult:
     descriptors: dict[str, float | int] | None = None
     confidence: str | None = None
     validation_notes: list[str] | None = None
+    needs_confirmation: bool = False
+    candidates: list[dict[str, Any]] | None = None
+    consensus_sources: list[str] | None = None
 
     def to_dict(self) -> dict[str, Any]:
         return asdict(self)
@@ -203,6 +206,106 @@ def _cactus_smiles(query: str, timeout: int) -> str | None:
     except requests.RequestException:
         return None
 
+
+
+def _opsin_candidate(query: str, timeout: int) -> dict[str, Any] | None:
+    """Resolve a systematic chemical name through the official EMBL-EBI OPSIN web service."""
+    url = f"https://www.ebi.ac.uk/opsin/ws/{quote(query, safe='')}.json"
+    payload = _request_json(url, timeout)
+    if not payload or str(payload.get("status", "")).upper() not in {"SUCCESS", "WARNING"}:
+        return None
+    smiles = payload.get("smiles")
+    canonical = _canonicalize_smiles(smiles) if smiles else None
+    if not canonical:
+        return None
+    return {
+        "Title": query,
+        "IUPACName": query,
+        "SMILES": canonical[0],
+        "ConnectivitySMILES": canonical[1],
+        "InChIKey": payload.get("stdinchikey"),
+        "_source": "OPSIN",
+        "_warning": "; ".join(payload.get("warnings") or []) or None,
+    }
+
+
+def _candidate_from_smiles(query: str, normalized: str, input_type: str, smiles: str,
+                           source: str, metadata: dict[str, Any] | None = None) -> ResolutionResult | None:
+    canonical = _canonicalize_smiles(smiles)
+    if not canonical:
+        return None
+    full, connectivity = canonical
+    mol = Chem.MolFromSmiles(full)
+    if mol is None:
+        return None
+    metadata = metadata or {}
+    formula = metadata.get("MolecularFormula") or rdMolDescriptors.CalcMolFormula(mol)
+    mw = metadata.get("MolecularWeight")
+    try:
+        mw = float(mw) if mw is not None else float(Descriptors.MolWt(mol))
+    except (TypeError, ValueError):
+        mw = float(Descriptors.MolWt(mol))
+    inchikey = metadata.get("InChIKey") or MolToInchiKey(mol)
+    confidence, notes = _identity_consistency(normalized, metadata)
+    warning = metadata.get("_warning")
+    if warning:
+        notes.append(str(warning))
+        confidence = "medium" if confidence == "high" else confidence
+    return ResolutionResult(
+        success=True, query=query, normalized_query=normalized, input_type=input_type,
+        source=source, title=metadata.get("Title") or normalized,
+        iupac_name=metadata.get("IUPACName"), molecular_formula=formula,
+        smiles=full, connectivity_smiles=connectivity, inchikey=inchikey,
+        molecular_weight=round(mw, 4), descriptors=_descriptors(full),
+        confidence=confidence, validation_notes=notes,
+        consensus_sources=[source],
+        message=f"Candidate resolved through {source} and validated with RDKit.",
+    )
+
+
+def _candidate_key(result: ResolutionResult) -> str:
+    return result.inchikey or result.connectivity_smiles or result.smiles or ""
+
+
+def _merge_candidates(candidates: list[ResolutionResult]) -> list[ResolutionResult]:
+    merged: dict[str, ResolutionResult] = {}
+    for candidate in candidates:
+        key = _candidate_key(candidate)
+        if not key:
+            continue
+        if key not in merged:
+            merged[key] = candidate
+            continue
+        current = merged[key]
+        sources = list(dict.fromkeys((current.consensus_sources or [current.source]) + (candidate.consensus_sources or [candidate.source])))
+        current.consensus_sources = [x for x in sources if x]
+        current.source = " + ".join(current.consensus_sources)
+        current.validation_notes = list(dict.fromkeys((current.validation_notes or []) + (candidate.validation_notes or [])))
+        if not current.iupac_name and candidate.iupac_name:
+            current.iupac_name = candidate.iupac_name
+        if not current.title and candidate.title:
+            current.title = candidate.title
+    return list(merged.values())
+
+
+def _score_candidate(candidate: ResolutionResult) -> float:
+    sources = candidate.consensus_sources or ([candidate.source] if candidate.source else [])
+    score = 40.0 + 22.0 * max(0, len(sources) - 1)
+    if "OPSIN" in sources:
+        score += 12
+    if any("PubChem" in x for x in sources):
+        score += 10
+    if any("Cactus" in x for x in sources):
+        score += 5
+    notes = candidate.validation_notes or []
+    score -= 18 * len([n for n in notes if "does not" in n.lower() or "mismatch" in n.lower()])
+    return max(0.0, min(100.0, score))
+
+
+def _candidate_dict(candidate: ResolutionResult) -> dict[str, Any]:
+    data = candidate.to_dict()
+    data["consensus_score"] = round(_score_candidate(candidate), 1)
+    return data
 
 def _pubchem_properties(namespace: str, identifier: str, timeout: int) -> dict[str, Any] | None:
     # PubChem renamed the historical CanonicalSMILES/IsomericSMILES properties.
@@ -349,64 +452,96 @@ def resolve_ligand(query: str, timeout: int = DEFAULT_TIMEOUT) -> dict[str, Any]
     if not normalized:
         return ResolutionResult(False, original, normalized, "empty", message="Enter a ligand identifier.").to_dict()
 
-    # Specialist MOF linker aliases are checked before general web services.
     local = _local_structure_result(original, normalized, normalized.casefold())
     if local:
+        local.consensus_sources = ["Curated MOF linker library"]
         return local.to_dict()
 
     aliased = _alias(normalized)
     local = _local_structure_result(original, normalized, aliased.casefold())
     if local:
+        local.consensus_sources = ["Curated MOF linker library"]
         return local.to_dict()
     input_type = detect_input_type(aliased)
 
     if _is_ambiguous_specialist_name(normalized) and normalized.casefold() not in LOCAL_STRUCTURE_ALIASES:
         return ResolutionResult(
-            False, original, normalized, input_type, source=None, confidence="unresolved",
+            False, original, normalized, input_type, confidence="unresolved",
             validation_notes=["Substitution positions or linker connectivity are not uniquely specified."],
-            message=("The name is chemically ambiguous and was not sent to general-purpose APIs to avoid assigning "
-                     "the wrong isomer. Enter the complete locanted name, an exact curated abbreviation, or a SMILES.")
+            message=("The name is chemically ambiguous. Enter the complete locanted name, an exact curated "
+                     "abbreviation, or a SMILES to prevent assignment of the wrong isomer.")
         ).to_dict()
 
     if input_type == "SMILES":
-        canonical = _canonicalize_smiles(aliased)
-        if canonical:
-            full, connectivity = canonical
-            return ResolutionResult(
-                True, original, normalized, input_type, source="direct SMILES / RDKit",
-                title=normalized, smiles=full, connectivity_smiles=connectivity,
-                descriptors=_descriptors(full), confidence="high",
-                validation_notes=["Direct structure input parsed and canonicalized with RDKit."],
-                message="SMILES parsed and canonicalized locally."
-            ).to_dict()
+        candidate = _candidate_from_smiles(original, normalized, input_type, aliased, "direct SMILES / RDKit")
+        if candidate:
+            candidate.confidence = "high"
+            candidate.validation_notes = ["Direct structure input parsed and canonicalized with RDKit."]
+            return candidate.to_dict()
 
-    # PubChem is queried first for names/CAS because it returns identity metadata in one call.
     if input_type == "molecular formula":
         row, warning = _pubchem_formula_candidate(aliased.replace(" ", ""), timeout)
         if row:
-            return _result_from_pubchem(original, normalized, input_type, row, "PubChem formula search", warning).to_dict()
-    else:
-        row = _pubchem_properties("name", aliased, timeout)
-        if row:
-            return _result_from_pubchem(original, normalized, input_type, row, "PubChem PUG REST").to_dict()
+            result = _result_from_pubchem(original, normalized, input_type, row, "PubChem formula search", warning)
+            result.needs_confirmation = True
+            result.candidates = [_candidate_dict(result)]
+            result.success = False
+            result.message = "A formula alone is not structurally unique. Confirm the candidate or enter a name/SMILES."
+            return result.to_dict()
 
-    # NCI Cactus is an independent fallback and often recognizes alternative names.
+    candidates: list[ResolutionResult] = []
+
+    # OPSIN is strongest for systematic names and retains locants in the parsed structure.
+    opsin = _opsin_candidate(aliased, timeout)
+    if opsin:
+        c = _candidate_from_smiles(original, normalized, input_type, opsin["SMILES"], "OPSIN", opsin)
+        if c:
+            candidates.append(c)
+
+    row = _pubchem_properties("name", aliased, timeout)
+    if row and (row.get("SMILES") or row.get("ConnectivitySMILES")):
+        c = _candidate_from_smiles(original, normalized, input_type,
+                                   row.get("SMILES") or row.get("ConnectivitySMILES"),
+                                   "PubChem PUG REST", row)
+        if c:
+            candidates.append(c)
+
     cactus = _cactus_smiles(aliased, timeout)
     if cactus:
-        row = _pubchem_properties("smiles", cactus, timeout)
-        if row:
-            result = _result_from_pubchem(original, normalized, input_type, row, "NCI Cactus + PubChem")
-            result.message = "Resolved by NCI Cactus, enriched through PubChem and validated with RDKit."
-            return result.to_dict()
-        full, connectivity = _canonicalize_smiles(cactus) or (cactus, cactus)
+        metadata = _pubchem_properties("smiles", cactus, timeout) or {"Title": aliased}
+        c = _candidate_from_smiles(original, normalized, input_type, cactus, "NCI Cactus", metadata)
+        if c:
+            candidates.append(c)
+
+    candidates = _merge_candidates(candidates)
+    candidates.sort(key=_score_candidate, reverse=True)
+
+    if not candidates:
         return ResolutionResult(
-            True, original, normalized, input_type, source="NCI Cactus",
-            title=aliased, smiles=full, connectivity_smiles=connectivity,
-            descriptors=_descriptors(full), message="Resolved by NCI Cactus and validated with RDKit."
+            False, original, normalized, input_type,
+            message=("No valid structure was found. Enter a SMILES, CAS number, or a more systematic name. "
+                     "You may continue by selecting the ligand family manually.")
         ).to_dict()
 
+    best = candidates[0]
+    best_score = _score_candidate(best)
+    second_score = _score_candidate(candidates[1]) if len(candidates) > 1 else -1
+    consensus_count = len(best.consensus_sources or [])
+
+    # Automatic acceptance requires either independent source agreement or a unique, strong OPSIN result.
+    auto_accept = consensus_count >= 2 and best_score >= 60
+    auto_accept = auto_accept or (len(candidates) == 1 and "OPSIN" in (best.consensus_sources or []) and best_score >= 52 and best.confidence != "low")
+
+    if auto_accept and (len(candidates) == 1 or best_score - second_score >= 8):
+        best.confidence = "high" if consensus_count >= 2 else "medium"
+        best.message = (f"Identity accepted from {consensus_count} agreeing source(s) and validated with RDKit."
+                        if consensus_count >= 2 else "Unique OPSIN candidate validated with RDKit.")
+        return best.to_dict()
+
     return ResolutionResult(
-        False, original, normalized, input_type, source=None,
-        message=("No valid structure was found. Enter a SMILES, CAS number, a less abbreviated chemical name, "
-                 "or continue with the text input and select the ligand family manually.")
+        False, original, normalized, input_type, confidence="confirmation required",
+        needs_confirmation=True, candidates=[_candidate_dict(c) for c in candidates[:5]],
+        message=("Multiple or insufficiently corroborated structures were found. Select and confirm the correct "
+                 "candidate before using it for prediction.")
     ).to_dict()
+

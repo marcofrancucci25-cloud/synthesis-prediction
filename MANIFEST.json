@@ -1,10 +1,36 @@
 {
-  "version": "9.5.3",
+  "version": "9.6.0",
+  "resolver_strategy": "curated + OPSIN + PubChem + NCI Cactus consensus",
   "files": [
     {
       "path": ".gitignore",
       "sha256": "7c04ab4c5b0c0f10679adde3cb1f54aadf1325111a8b2231c5a347085fc5bf1a",
       "size": 69
+    },
+    {
+      "path": ".pytest_cache/.gitignore",
+      "sha256": "3ed731b65d06150c138e2dadb0be0697550888a6b47eb8c45ecc9adba8b8e9bd",
+      "size": 37
+    },
+    {
+      "path": ".pytest_cache/CACHEDIR.TAG",
+      "sha256": "37dc88ef9a0abeddbe81053a6dd8fdfb13afb613045ea1eb4a5c815a74a3bde4",
+      "size": 191
+    },
+    {
+      "path": ".pytest_cache/README.md",
+      "sha256": "73fd6fccdd802c419a6b2d983d6c3173b7da97558ac4b589edec2dfe443db9ad",
+      "size": 302
+    },
+    {
+      "path": ".pytest_cache/v/cache/lastfailed",
+      "sha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+      "size": 2
+    },
+    {
+      "path": ".pytest_cache/v/cache/nodeids",
+      "sha256": "3c88a986816585713b3135ac26eee99423b758c89279e7dae400888096bb6b24",
+      "size": 298
     },
     {
       "path": ".streamlit/config.toml",
@@ -22,24 +48,19 @@
       "size": 250
     },
     {
-      "path": "MANIFEST.json",
-      "sha256": "e6b1e1272e965cc6934b080fea0494d93cef6006a7f4d17cef9bb925a8b4c2f8",
-      "size": 4951
-    },
-    {
       "path": "README.md",
-      "sha256": "0a9cf3d7e3db3fb1fdcf79c0ce932805a1b838175e9ba45511086c64b274ae3c",
-      "size": 2603
+      "sha256": "0f78dfd3a3c05e188fd2b550e8caa2b4f77965d3e5bdcb84a8ade6d813498924",
+      "size": 2957
     },
     {
       "path": "VERSION",
-      "sha256": "b6c42936f16b57bdc691c80e96093c79c46a86c92d188dacadff4cbf969041ce",
+      "sha256": "8545ee9c098c6187c85a863b827ac41577f6a27b09745b0eaa600f532d5a1ea2",
       "size": 6
     },
     {
       "path": "app.py",
-      "sha256": "317f5290e8c62f6f2078d7fb60a946aa83499f570dc7b363dcca3c7f4ae64a37",
-      "size": 19787
+      "sha256": "8a1ede29e223a95c9dc9bf156130ed6ac4fcc9fa319ef443ea769edf4c58f208",
+      "size": 22693
     },
     {
       "path": "data/knowledge_database.csv",
@@ -110,6 +131,11 @@
       "path": "reports/LIGAND_RESOLVER_UPDATE_v9_5_3.md",
       "sha256": "11e23bd2b72ee333552114a8db7c0621e522e33d67567ec4c3d13270e4491272",
       "size": 345
+    },
+    {
+      "path": "reports/LIGAND_RESOLVER_UPDATE_v9_6_0.md",
+      "sha256": "988372ba64dd5c59778eae7d6c8202a75716f372088b0a3a540d49200d0d3353",
+      "size": 702
     },
     {
       "path": "reports/SCIENTIFIC_UPDATE_v8_0.md",
@@ -183,8 +209,8 @@
     },
     {
       "path": "src/resolver.py",
-      "sha256": "bb4fc3c66ac8fe466e27086c731daf15593b8ec8ca95efc616b59e406a13ec3e",
-      "size": 17965
+      "sha256": "2912e97049ec46e06aed2db1dec68d2c5df3767316b0eb7274c722ea9c967223",
+      "size": 23752
     },
     {
       "path": "tests/smoke_test.py",

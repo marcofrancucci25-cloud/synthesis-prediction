@@ -12,11 +12,11 @@ from src.literature import search_literature
 # Temporary Tavily deployment key. Replace this value when rotating the key.
 TAVILY_DEPLOYMENT_KEY = "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"
 
-APP_VERSION = "9.5.3"
+APP_VERSION = "9.6.0"
 
 st.set_page_config(page_title="MOF Synthesis Assistant", page_icon="🧪", layout="wide")
-st.title("🧪 MOF Synthesis Assistant v9.5.3")
-st.caption("Version 9.5.3 · Precision-first ligand identity validation and isomer safeguards")
+st.title("🧪 MOF Synthesis Assistant v9.6.0")
+st.caption("Version 9.6.0 · Consensus ligand resolver with OPSIN, PubChem and NCI Cactus")
 st.caption("Prediction, intuitive condition diagnosis, contextual optimization and recent literature search")
 page = st.sidebar.radio("Module", ["Predict synthesis", "Literature search", "Model validation", "About"])
 
@@ -56,7 +56,7 @@ def _descriptor_value(descriptors, key, suffix=""):
 def _resolved_identity(prefix, typed_ligand):
     state_key = prefix + "resolved_ligand"
     if st.button("Resolve ligand", key=prefix + "resolve", disabled=not typed_ligand, type="secondary"):
-        with st.spinner("Resolving through local parsing, NCI Cactus and PubChem..."):
+        with st.spinner("Resolving through curated entries, OPSIN, PubChem and NCI Cactus..."):
             st.session_state[state_key] = resolve_ligand(typed_ligand)
 
     result = st.session_state.get(state_key)
@@ -67,6 +67,49 @@ def _resolved_identity(prefix, typed_ligand):
 
     if not result.get("success"):
         st.warning(result.get("message", "Ligand resolution failed."))
+        candidates = result.get("candidates") or []
+        if result.get("needs_confirmation") and candidates:
+            st.markdown("#### Candidate structures")
+            st.caption("The resolver did not silently choose an isomer. Compare the candidates and confirm the correct structure.")
+            labels = []
+            for idx, candidate in enumerate(candidates, start=1):
+                name = candidate.get("title") or candidate.get("iupac_name") or f"Candidate {idx}"
+                formula = candidate.get("molecular_formula") or "formula unavailable"
+                sources = candidate.get("source") or "unknown source"
+                score = candidate.get("consensus_score")
+                score_text = f" · consensus {score:.0f}/100" if isinstance(score, (int, float)) else ""
+                labels.append(f"{idx}. {name} · {formula} · {sources}{score_text}")
+            chosen_index = st.selectbox(
+                "Select the structure matching your intended ligand",
+                range(len(candidates)),
+                format_func=lambda i: labels[i],
+                key=prefix + "candidate_choice",
+            )
+            chosen = candidates[chosen_index]
+            preview_left, preview_right = st.columns([0.75, 1.25], gap="large")
+            with preview_left:
+                image = _molecule_image(chosen.get("smiles"))
+                if image is not None:
+                    st.image(image, caption="Candidate 2D structure", use_container_width=True)
+            with preview_right:
+                st.write(f"**IUPAC name:** {chosen.get('iupac_name') or 'Unavailable'}")
+                st.write(f"**Formula:** {chosen.get('molecular_formula') or 'Unavailable'}")
+                st.write(f"**Molecular weight:** {chosen.get('molecular_weight') or 'Unavailable'}")
+                st.write(f"**Sources:** {chosen.get('source') or 'Unavailable'}")
+                st.code(chosen.get("smiles") or "SMILES unavailable", language=None)
+            if st.button("Confirm selected structure", type="primary", key=prefix + "confirm_candidate"):
+                confirmed = dict(chosen)
+                confirmed["success"] = True
+                confirmed["needs_confirmation"] = False
+                confirmed["query"] = typed_ligand
+                confirmed["normalized_query"] = result.get("normalized_query") or typed_ligand
+                confirmed["confidence"] = "user confirmed"
+                notes = list(confirmed.get("validation_notes") or [])
+                notes.append("Structure selected and confirmed by the user from resolver candidates.")
+                confirmed["validation_notes"] = notes
+                confirmed["message"] = "Candidate identity confirmed by the user after consensus resolution."
+                st.session_state[state_key] = confirmed
+                st.rerun()
         return result
 
     if result.get("ambiguity_warning"):
@@ -80,7 +123,7 @@ def _resolved_identity(prefix, typed_ligand):
     inchikey = result.get("inchikey") or "Unavailable"
     source = result.get("source") or "Chemical resolver"
     confidence = (result.get("confidence") or "medium").capitalize()
-    confidence_color = {"High": ("#e9f8ef", "#24724d"), "Medium": ("#fff7df", "#8a6116"), "Low": ("#fff0f0", "#a33a3a")}.get(confidence, ("#eef2f7", "#475569"))
+    confidence_color = {"High": ("#e9f8ef", "#24724d"), "Medium": ("#fff7df", "#8a6116"), "Low": ("#fff0f0", "#a33a3a"), "User confirmed": ("#e8f1ff", "#2457a6")}.get(confidence, ("#eef2f7", "#475569"))
     descriptors = result.get("descriptors") or {}
 
     card = f"""
