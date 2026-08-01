@@ -1,157 +1,200 @@
 {
-  "release": "v9.2",
+  "version": "9.5.3",
   "files": [
     {
       "path": ".gitignore",
       "sha256": "7c04ab4c5b0c0f10679adde3cb1f54aadf1325111a8b2231c5a347085fc5bf1a",
-      "bytes": 69
+      "size": 69
     },
     {
       "path": ".streamlit/config.toml",
       "sha256": "671c2e312d77b8deecf755086ab2170fce241ce61819621a52588b8904ff07fd",
-      "bytes": 83
+      "size": 83
     },
     {
       "path": ".streamlit/secrets.toml.example",
       "sha256": "e4bb4e877b2ae992c63de56794e17df86accfb60a5940e48f721d9f67b7ac97e",
-      "bytes": 97
+      "size": 97
     },
     {
       "path": "LICENSE",
       "sha256": "b31eb295670efd63177916c746e14a8ec6727bb258b24a3fe42fd35dfdee3863",
-      "bytes": 250
+      "size": 250
+    },
+    {
+      "path": "MANIFEST.json",
+      "sha256": "e6b1e1272e965cc6934b080fea0494d93cef6006a7f4d17cef9bb925a8b4c2f8",
+      "size": 4951
     },
     {
       "path": "README.md",
-      "sha256": "e76487f30dcf96d8291707e84f372f39276bfac6b400ec7f8b602c4dbc74f8d2",
-      "bytes": 2063
+      "sha256": "0a9cf3d7e3db3fb1fdcf79c0ce932805a1b838175e9ba45511086c64b274ae3c",
+      "size": 2603
+    },
+    {
+      "path": "VERSION",
+      "sha256": "b6c42936f16b57bdc691c80e96093c79c46a86c92d188dacadff4cbf969041ce",
+      "size": 6
     },
     {
       "path": "app.py",
-      "sha256": "c6e59f358c5c9b10e10ef0fe494db81ce562d703b061fef20bea336a5e951ea9",
-      "bytes": 13904
+      "sha256": "317f5290e8c62f6f2078d7fb60a946aa83499f570dc7b363dcca3c7f4ae64a37",
+      "size": 19787
     },
     {
       "path": "data/knowledge_database.csv",
       "sha256": "8d6046c790b098dce7a9a7b39dffeaf84143f1da75494ee6240a6efe3b0a2aec",
-      "bytes": 442130
+      "size": 442130
     },
     {
       "path": "models/MOF_ChemAware_Ensemble_v8_0.joblib",
       "sha256": "48d097c78996e4fdd268d1aa39e645a8e2fb346255ced894225ba61e5aa1b752",
-      "bytes": 1593888
+      "size": 1593888
     },
     {
       "path": "models/MOF_Hybrid_ChemAware_v8_0.joblib",
       "sha256": "d53d5ced142194d80d0cbec6e6a6d68b53682eda79cf59539118f0d38603ce2b",
-      "bytes": 1944452
+      "size": 1944452
     },
     {
       "path": "models/feature_schema_v8_0.json",
       "sha256": "9e45422a42059bc8c2a166f3c93d391fe7cc384de88c9bfb65a25a36b884ca3a",
-      "bytes": 1930
+      "size": 1930
     },
     {
       "path": "models/metal_properties.json",
       "sha256": "c1275ba41e588d3b295653a9719e746d56437aedda611c99e4740f181a90e79d",
-      "bytes": 3824
+      "size": 3824
+    },
+    {
+      "path": "packages.txt",
+      "sha256": "a0867b27e67e54bd19809f4741ba5b2527685b39bdcafd4e2083273b95f137a2",
+      "size": 35
+    },
+    {
+      "path": "reports/DEPLOYMENT_FIX_v9_5_1.md",
+      "sha256": "434b56c7bc744d4af90aa4975e967731828f6c19a1bca066af2bbe9b4eb556fd",
+      "size": 348
     },
     {
       "path": "reports/INTERFACE_UPDATE_v9_1.md",
       "sha256": "a5d40695058f5b98597f13fcfe945439fe62a0deaae9ae5821bf5c71f4c74288",
-      "bytes": 741
+      "size": 741
     },
     {
       "path": "reports/INTERFACE_UPDATE_v9_2.md",
       "sha256": "a75d0850772ade2207ff0e83424f69b53f2cc22693e8d5ca06382f4aade8fa92",
-      "bytes": 850
+      "size": 850
+    },
+    {
+      "path": "reports/INTERFACE_UPDATE_v9_3.md",
+      "sha256": "39f8654c11bb91a59bf5d3992fb47252565388d62ca4a0649e2c55d6f29c74e0",
+      "size": 415
+    },
+    {
+      "path": "reports/INTERFACE_UPDATE_v9_4.md",
+      "sha256": "b4f39129dbde3689d681a38d71db96ca999d45d589f48c773c90081eec205d58",
+      "size": 404
+    },
+    {
+      "path": "reports/INTERFACE_UPDATE_v9_5.md",
+      "sha256": "c2b2307461f82f96a16966cbf1626b29ab55d7dec5fdf791999455778246f9f8",
+      "size": 364
+    },
+    {
+      "path": "reports/LIGAND_RESOLVER_UPDATE_v9_5_2.md",
+      "sha256": "c81db73fb601715db90c5a87d1caafa29beed6585cd85742edba9530f5fef59d",
+      "size": 349
+    },
+    {
+      "path": "reports/LIGAND_RESOLVER_UPDATE_v9_5_3.md",
+      "sha256": "11e23bd2b72ee333552114a8db7c0621e522e33d67567ec4c3d13270e4491272",
+      "size": 345
     },
     {
       "path": "reports/SCIENTIFIC_UPDATE_v8_0.md",
       "sha256": "481d44bfd7ba642fea6f33a6b4c4bc96b7d6508c7eefa0971ca5096d9725e6b5",
-      "bytes": 1535
+      "size": 1535
     },
     {
       "path": "reports/SCIENTIFIC_UPDATE_v9_0.md",
       "sha256": "aea3cc4f037a8c4206eb257563eb34b302a311d9b449cb486473eb170e66860f",
-      "bytes": 1098
+      "size": 1098
     },
     {
       "path": "reports/external_class_metrics_v8_0.csv",
       "sha256": "22e249246c705672e3010c734594d9abc8e37cab02574e0e2a13d20f3a582756",
-      "bytes": 462
+      "size": 462
     },
     {
       "path": "reports/external_confusion_matrix_v8_0.csv",
       "sha256": "cfc7d3ddc734acadf4a3c3db8cd597904afbcd3fef970f20423b309aa7639e39",
-      "bytes": 68
+      "size": 68
     },
     {
       "path": "reports/external_metrics_v8_0.json",
       "sha256": "e4d03968af24a6e280809624d2f5b5d69da73f50247ca0c060cba5873b99f519",
-      "bytes": 356
+      "size": 356
     },
     {
       "path": "reports/external_predictions_v8_0.csv",
       "sha256": "b353322358712c37ef7f922fc540bc6735e8bc89b044560b0c28b34acc795326",
-      "bytes": 33645
+      "size": 33645
     },
     {
       "path": "reports/grouped_cv_fold_metrics_v8_0.csv",
       "sha256": "baf0bf82f52c7251e2700aa1a8dfb4436accee099951df8178949eaad5c98501",
-      "bytes": 619
+      "size": 619
     },
     {
       "path": "reports/grouped_cv_summary_v8_0.csv",
       "sha256": "332f55de6cf72d659c99f5810806f7e81812a2500338dd3c1e202cad071e6551",
-      "bytes": 501
+      "size": 501
     },
     {
       "path": "requirements.txt",
       "sha256": "1926c9a16a555375938667bb35626586371099bae805ffd2756b6120a15b78ac",
-      "bytes": 139
+      "size": 139
     },
     {
       "path": "src/__init__.py",
       "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
-      "bytes": 0
+      "size": 0
     },
     {
       "path": "src/chem.py",
       "sha256": "6c6549cc76487aa42d465355395db632c4c0f47ac7478cf338fb04072e668cf6",
-      "bytes": 4373
+      "size": 4373
     },
     {
       "path": "src/engine.py",
       "sha256": "7bdf6d4e0f7727a27e704963d996bf8f506b4342861a50879f120de8e555452e",
-      "bytes": 5840
+      "size": 5840
     },
     {
       "path": "src/literature.py",
-      "sha256": "9d9809e96982fefaa288609d3b7acdfee4f1b32ca9217007564bff03d25270fc",
-      "bytes": 4212
+      "sha256": "4b91d55b90602ebeac6f4f2fa942d4f6a495086b537edd96a52f272675f51d6b",
+      "size": 4470
     },
     {
       "path": "src/pubchem.py",
       "sha256": "5962981926d7d364f303082f878f70d8158c005900985d5b46f52349c90937cc",
-      "bytes": 326
+      "size": 326
     },
     {
       "path": "src/resolver.py",
-      "sha256": "b901ded4755d5864da14226cfe96450b2645d2178179f085ebbe6b941c5477af",
-      "bytes": 10745
+      "sha256": "bb4fc3c66ac8fe466e27086c731daf15593b8ec8ca95efc616b59e406a13ec3e",
+      "size": 17965
     },
     {
       "path": "tests/smoke_test.py",
       "sha256": "99f027f50bee46a032482eaee2b95d52e704dbd025cb02113c20d9c82d774fe5",
-      "bytes": 801
+      "size": 801
     },
     {
       "path": "tests/test_resolver.py",
-      "sha256": "161db98dfeebe8bb0e566671bd4c41f89c6ceeb3333c1e341d753db3d47b9966",
-      "bytes": 528
+      "sha256": "1358fe7f172cbd7bbe65455a3dc504843eff68458c9a129a01ba6bd671ba63e1",
+      "size": 1396
     }
-  ],
-  "version": "9.4",
-  "release_notes": "Embedded temporary Tavily deployment key; removed API-key UI and secret checks."
+  ]
 }

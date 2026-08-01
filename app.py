@@ -12,11 +12,11 @@ from src.literature import search_literature
 # Temporary Tavily deployment key. Replace this value when rotating the key.
 TAVILY_DEPLOYMENT_KEY = "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"
 
-APP_VERSION = "9.5.2"
+APP_VERSION = "9.5.3"
 
 st.set_page_config(page_title="MOF Synthesis Assistant", page_icon="🧪", layout="wide")
-st.title("🧪 MOF Synthesis Assistant v9.5.2")
-st.caption("Version 9.5.2 · Expanded curated MOF-linker recognition with deployment-safe structure preview")
+st.title("🧪 MOF Synthesis Assistant v9.5.3")
+st.caption("Version 9.5.3 · Precision-first ligand identity validation and isomer safeguards")
 st.caption("Prediction, intuitive condition diagnosis, contextual optimization and recent literature search")
 page = st.sidebar.radio("Module", ["Predict synthesis", "Literature search", "Model validation", "About"])
 
@@ -79,6 +79,8 @@ def _resolved_identity(prefix, typed_ligand):
     mw_text = f"{mw:.2f} g/mol" if isinstance(mw, (int, float)) else "Unavailable"
     inchikey = result.get("inchikey") or "Unavailable"
     source = result.get("source") or "Chemical resolver"
+    confidence = (result.get("confidence") or "medium").capitalize()
+    confidence_color = {"High": ("#e9f8ef", "#24724d"), "Medium": ("#fff7df", "#8a6116"), "Low": ("#fff0f0", "#a33a3a")}.get(confidence, ("#eef2f7", "#475569"))
     descriptors = result.get("descriptors") or {}
 
     card = f"""
@@ -92,8 +94,9 @@ def _resolved_identity(prefix, typed_ligand):
           <div style="font-size:1.55rem;font-weight:750;color:#172033;margin-top:5px;">{html.escape(str(title))}</div>
           <div style="font-size:0.93rem;color:#5f6b7a;margin-top:4px;max-width:760px;">{html.escape(str(iupac))}</div>
         </div>
-        <div style="background:#e9f8ef;color:#24724d;border-radius:999px;padding:7px 12px;font-size:0.82rem;font-weight:700;">
-          Resolved identity
+        <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+          <div style="background:#e9f8ef;color:#24724d;border-radius:999px;padding:7px 12px;font-size:0.82rem;font-weight:700;">Resolved identity</div>
+          <div style="background:{confidence_color[0]};color:{confidence_color[1]};border-radius:999px;padding:7px 12px;font-size:0.82rem;font-weight:700;">{confidence} confidence</div>
         </div>
       </div>
       <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:10px;margin-top:18px;">
@@ -143,8 +146,14 @@ def _resolved_identity(prefix, typed_ligand):
 
     with st.expander("View complete resolver details"):
         st.caption(result.get("message") or "Structure resolved and validated.")
+        notes = result.get("validation_notes") or []
+        if notes:
+            st.markdown("**Identity validation checks**")
+            for note in notes:
+                st.markdown(f"- {note}")
         extra = pd.DataFrame([
             ["Input type", result.get("input_type") or "—"],
+            ["Resolution confidence", result.get("confidence") or "—"],
             ["Normalized query", result.get("normalized_query") or "—"],
             ["Connectivity SMILES", result.get("connectivity_smiles") or "—"],
             ["Exact mass", _descriptor_value(descriptors, "ExactMass")],

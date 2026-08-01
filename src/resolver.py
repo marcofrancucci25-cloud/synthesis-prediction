@@ -41,25 +41,39 @@ ALIASES: dict[str, str] = {
 # Curated structures for specialist MOF linkers that are often absent or
 # ambiguously indexed in general-purpose chemical databases.  These entries
 # are resolved locally before external API calls.
-LOCAL_STRUCTURES: dict[str, dict[str, str]] = {
+LOCAL_STRUCTURES: dict[str, dict[str, Any]] = {
     "3-amino-4,4'-bipyrazole": {
-        "title": "3-amino-4,4'-bipyrazole",
+        "title": "3-amino-4,4′-bipyrazole",
         "iupac_name": "4-(1H-pyrazol-4-yl)-1H-pyrazol-3-amine",
         "smiles": "Nc1n[nH]cc1-c1cn[nH]c1",
+        "expected_formula": "C6H7N5",
+        "expected_molecular_weight": 149.157,
+        "required_smarts": ["[NX3;H2]-[c,n]", "c1n[nH]cc1", "c1cn[nH]c1"],
     },
 }
 
+# Only unambiguous aliases are accepted. Generic labels such as
+# "aminobipyrazole" are intentionally excluded because they do not specify
+# substitution position or the 4,4′ connectivity and may resolve to another isomer.
 LOCAL_STRUCTURE_ALIASES: dict[str, str] = {
     "3-amino-4,4'-bipyrazole": "3-amino-4,4'-bipyrazole",
     "3-amino-4,4-bipyrazole": "3-amino-4,4'-bipyrazole",
-    "3-aminobipyrazole": "3-amino-4,4'-bipyrazole",
-    "aminobipyrazole": "3-amino-4,4'-bipyrazole",
+    "3-amino-4,4'-bipyrazol": "3-amino-4,4'-bipyrazole",
+    "3-amino-4,4-bipyrazol": "3-amino-4,4'-bipyrazole",
+    "3-aminobipirazolo-4,4'": "3-amino-4,4'-bipyrazole",
+    "3-amino-4,4'-bipirazolo": "3-amino-4,4'-bipyrazole",
+    "3-amino-4,4-bipirazolo": "3-amino-4,4'-bipyrazole",
     "bpznh2": "3-amino-4,4'-bipyrazole",
     "bpz-nh2": "3-amino-4,4'-bipyrazole",
-    "nh2-bpz": "3-amino-4,4'-bipyrazole",
+    "3-nh2-bpz": "3-amino-4,4'-bipyrazole",
     "h2bpznh2": "3-amino-4,4'-bipyrazole",
     "h2bpz-nh2": "3-amino-4,4'-bipyrazole",
 }
+
+SPECIALIST_AMBIGUOUS_PATTERNS = (
+    "aminobipyrazole", "amino bipyrazole", "aminobipirazolo", "amino bipirazolo",
+    "nitrobipyrazole", "nitro bipyrazole", "diaminobipyrazole", "dinitrobipyrazole",
+)
 
 CAS_RE = re.compile(r"^\d{2,7}-\d{2}-\d$")
 FORMULA_RE = re.compile(r"^(?:[A-Z][a-z]?\d*){2,}(?:[+-]\d*)?$")
@@ -82,6 +96,8 @@ class ResolutionResult:
     message: str | None = None
     ambiguity_warning: str | None = None
     descriptors: dict[str, float | int] | None = None
+    confidence: str | None = None
+    validation_notes: list[str] | None = None
 
     def to_dict(self) -> dict[str, Any]:
         return asdict(self)
@@ -227,6 +243,10 @@ def _result_from_pubchem(query: str, normalized: str, input_type: str, row: dict
     canonical = _canonicalize_smiles(smiles) if smiles else None
     full = canonical[0] if canonical else smiles
     connectivity = canonical[1] if canonical else row.get("ConnectivitySMILES")
+    confidence, consistency_notes = _identity_consistency(normalized, row)
+    if warning:
+        confidence = "low"
+        consistency_notes.append(warning)
     return ResolutionResult(
         success=bool(full), query=query, normalized_query=normalized, input_type=input_type,
         source=source, title=row.get("Title"), iupac_name=row.get("IUPACName"),
@@ -234,16 +254,71 @@ def _result_from_pubchem(query: str, normalized: str, input_type: str, row: dict
         connectivity_smiles=connectivity, inchikey=row.get("InChIKey"),
         molecular_weight=float(row["MolecularWeight"]) if row.get("MolecularWeight") is not None else None,
         ambiguity_warning=warning, descriptors=_descriptors(full) if full else None,
-        message="Structure resolved and validated with RDKit." if full else "The service returned no valid SMILES."
+        confidence=confidence, validation_notes=consistency_notes,
+        message=("Structure resolved and parsed with RDKit. Confirm low-confidence API identities manually."
+                 if full else "The service returned no valid SMILES.")
     )
 
 
+
+def _validate_curated_entry(entry: dict[str, Any], smiles: str) -> tuple[bool, list[str]]:
+    notes: list[str] = []
+    mol = Chem.MolFromSmiles(smiles)
+    if mol is None:
+        return False, ["The curated SMILES could not be parsed by RDKit."]
+
+    formula = rdMolDescriptors.CalcMolFormula(mol)
+    expected_formula = entry.get("expected_formula")
+    if expected_formula and formula != expected_formula:
+        notes.append(f"Formula mismatch: calculated {formula}, expected {expected_formula}.")
+
+    expected_mw = entry.get("expected_molecular_weight")
+    calculated_mw = float(Descriptors.MolWt(mol))
+    if expected_mw is not None and abs(calculated_mw - float(expected_mw)) > 0.05:
+        notes.append(f"Molecular-weight mismatch: calculated {calculated_mw:.3f}, expected {float(expected_mw):.3f}.")
+
+    for smarts in entry.get("required_smarts", []):
+        pattern = Chem.MolFromSmarts(smarts)
+        if pattern is None or not mol.HasSubstructMatch(pattern):
+            notes.append(f"Required structural motif not found: {smarts}.")
+
+    return not notes, notes
+
+
+def _is_ambiguous_specialist_name(query: str) -> bool:
+    compact = re.sub(r"[^a-z0-9]+", " ", query.casefold()).strip()
+    return any(pattern in compact for pattern in SPECIALIST_AMBIGUOUS_PATTERNS)
+
+
+def _identity_consistency(query: str, row: dict[str, Any]) -> tuple[str, list[str]]:
+    """Conservative consistency screen for API-derived identities.
+
+    It does not prove structural identity, but prevents high-confidence display
+    when a substituted specialist linker loses its functional-group or scaffold
+    keywords during resolution.
+    """
+    text = " ".join(str(row.get(k) or "") for k in ("Title", "IUPACName")).casefold()
+    query_l = query.casefold()
+    notes: list[str] = []
+    functional_terms = [t for t in ("amino", "nitro", "hydroxy", "carbox", "methyl", "ethyl") if t in query_l]
+    for term in functional_terms:
+        if term not in text and not (term == "amino" and "amine" in text):
+            notes.append(f"The resolved name does not preserve the requested '{term}' functionality.")
+    scaffold_terms = [t for t in ("bipyraz", "bipyrid", "imidazol", "terephthal", "trimes") if t in query_l]
+    for term in scaffold_terms:
+        if term not in text.replace("-", ""):
+            notes.append(f"The resolved name does not clearly preserve the requested '{term}' scaffold.")
+    confidence = "high" if not notes else "low"
+    return confidence, notes
 
 def _local_structure_result(original: str, normalized: str, key: str) -> ResolutionResult | None:
     canonical_key = LOCAL_STRUCTURE_ALIASES.get(key.casefold())
     if not canonical_key:
         return None
     entry = LOCAL_STRUCTURES[canonical_key]
+    valid, validation_notes = _validate_curated_entry(entry, entry["smiles"])
+    if not valid:
+        return None
     canonical = _canonicalize_smiles(entry["smiles"])
     if not canonical:
         return None
@@ -258,8 +333,13 @@ def _local_structure_result(original: str, normalized: str, key: str) -> Resolut
         title=entry["title"], iupac_name=entry.get("iupac_name"),
         molecular_formula=formula, smiles=full, connectivity_smiles=connectivity,
         inchikey=inchikey, molecular_weight=round(mw, 4) if mw is not None else None,
-        descriptors=_descriptors(full),
-        message="Resolved locally from the curated MOF linker library and validated with RDKit.",
+        descriptors=_descriptors(full), confidence="high",
+        validation_notes=[
+            "Exact curated alias match.",
+            f"Calculated formula confirmed as {formula}.",
+            "Connectivity and required functional motifs validated with RDKit.",
+        ],
+        message="Resolved locally from a curated MOF-linker entry and validated against formula, mass and structural motifs.",
     )
 
 @lru_cache(maxsize=512)
@@ -280,6 +360,14 @@ def resolve_ligand(query: str, timeout: int = DEFAULT_TIMEOUT) -> dict[str, Any]
         return local.to_dict()
     input_type = detect_input_type(aliased)
 
+    if _is_ambiguous_specialist_name(normalized) and normalized.casefold() not in LOCAL_STRUCTURE_ALIASES:
+        return ResolutionResult(
+            False, original, normalized, input_type, source=None, confidence="unresolved",
+            validation_notes=["Substitution positions or linker connectivity are not uniquely specified."],
+            message=("The name is chemically ambiguous and was not sent to general-purpose APIs to avoid assigning "
+                     "the wrong isomer. Enter the complete locanted name, an exact curated abbreviation, or a SMILES.")
+        ).to_dict()
+
     if input_type == "SMILES":
         canonical = _canonicalize_smiles(aliased)
         if canonical:
@@ -287,7 +375,9 @@ def resolve_ligand(query: str, timeout: int = DEFAULT_TIMEOUT) -> dict[str, Any]
             return ResolutionResult(
                 True, original, normalized, input_type, source="direct SMILES / RDKit",
                 title=normalized, smiles=full, connectivity_smiles=connectivity,
-                descriptors=_descriptors(full), message="SMILES parsed and canonicalized locally."
+                descriptors=_descriptors(full), confidence="high",
+                validation_notes=["Direct structure input parsed and canonicalized with RDKit."],
+                message="SMILES parsed and canonicalized locally."
             ).to_dict()
 
     # PubChem is queried first for names/CAS because it returns identity metadata in one call.

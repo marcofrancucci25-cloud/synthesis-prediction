@@ -1,3 +1,4 @@
+from rdkit import Chem
 from src.resolver import normalize_query, detect_input_type, resolve_ligand
 
 
@@ -23,3 +24,15 @@ def test_amino_bipyrazole_curated_aliases():
         assert result["success"]
         assert result["molecular_formula"] == "C6H7N5"
         assert result["source"] == "curated MOF linker library / RDKit"
+        assert result["confidence"] == "high"
+        assert abs(result["molecular_weight"] - 149.157) < 0.02
+        mol = Chem.MolFromSmiles(result["smiles"])
+        amino = Chem.MolFromSmarts("[NX3;H2]-[c,n]")
+        assert mol.HasSubstructMatch(amino)
+
+
+def test_generic_aminobipyrazole_is_rejected_as_ambiguous():
+    result = resolve_ligand("aminobipyrazole")
+    assert not result["success"]
+    assert result["confidence"] == "unresolved"
+    assert "ambiguous" in result["message"].lower()
