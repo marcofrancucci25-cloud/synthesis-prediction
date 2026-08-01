@@ -6,7 +6,9 @@ ROOT=Path(__file__).resolve().parents[1]
 ART=joblib.load(ROOT/'models/MOF_ChemAware_Ensemble_v8_0.joblib')
 SCHEMA=json.loads((ROOT/'models/feature_schema_v8_0.json').read_text())
 DB=pd.read_csv(ROOT/'data/knowledge_database.csv')
-POSITIVE_DB=pd.read_csv(ROOT/'data/successful_synthesis_library_v10_3.csv')
+POSITIVE_DB=pd.read_csv(ROOT/'data/successful_synthesis_library_v10_4.csv')
+POSITIVE_MODEL_PATH=ROOT/'models/Positive_Condition_Recommendation_v10_4.joblib'
+POSITIVE_MODEL=joblib.load(POSITIVE_MODEL_PATH) if POSITIVE_MODEL_PATH.exists() else None
 FEATURES=ART['features']
 
 def predict(values):
@@ -94,7 +96,7 @@ def explain_prediction(values):
 def optimize_joint(values, objective="Balanced conditions", n_samples=2500, top_n=12, constraints=None):
     return joint_optimize(
         values, model_artifact=ART, features=FEATURES, db=DB, positive_db=POSITIVE_DB,
-        objective=objective, n_samples=n_samples, top_n=top_n,
+        positive_model=POSITIVE_MODEL, objective=objective, n_samples=n_samples, top_n=top_n,
         constraints=constraints or {},
     )
 

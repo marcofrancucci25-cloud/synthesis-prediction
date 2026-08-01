@@ -42,11 +42,11 @@ from src.literature import search_literature
 # Temporary Tavily deployment key. Replace this value when rotating the key.
 TAVILY_DEPLOYMENT_KEY = "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"
 
-APP_VERSION = "10.3.1"
+APP_VERSION = "10.4.0"
 
 st.set_page_config(page_title="MOF Synthesis Assistant", page_icon="🧪", layout="wide")
-st.title("🧪 MOF Synthesis Assistant v10.3.1")
-st.caption("Version 10.3.1 · Streamlined top-5 optimizer results and faster ligand input workflow")
+st.title("🧪 MOF Synthesis Assistant v10.4.0")
+st.caption("Version 10.4.0 · Streamlined top-5 optimizer results and faster ligand input workflow")
 st.caption("Prediction evaluates the exact entered conditions. Optimization separately combines three-class risk, successful precedents, feasibility and applicability while keeping only ligand and metal fixed.")
 page = st.sidebar.radio("Module", ["Predict synthesis", "Literature search", "Model validation", "About"])
 

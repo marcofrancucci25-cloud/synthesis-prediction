@@ -307,10 +307,13 @@ def _exploration_candidate(rng: np.random.Generator, base: Dict[str, Any], db: p
 
 
 def _positive_support(positive_db: pd.DataFrame, base: Dict[str, Any], candidates: pd.DataFrame,
-                      bounds: Dict[str, Tuple[float, float]]) -> pd.DataFrame:
-    """Score joint-condition similarity to successful synthesis records.
+                      bounds: Dict[str, Tuple[float, float]], positive_model: Optional[Dict[str, Any]] = None) -> pd.DataFrame:
+    """Estimate support from successful syntheses.
 
-    This is a positive-condition plausibility score, not an absolute probability of success.
+    When available, v10.4 uses a fitted conditional nearest-neighbour model built
+    from ligand text, metal/family, precursor, solvent, additive and numerical
+    conditions. Evidence quality and diversity weights temper the score. This is
+    a literature/positive-precedent plausibility score, not a success probability.
     """
     if positive_db is None or positive_db.empty:
         out = pd.DataFrame(index=candidates.index)
@@ -321,6 +324,45 @@ def _positive_support(positive_db: pd.DataFrame, base: Dict[str, Any], candidate
         out["Evidence_tier"] = "No positive library"
         return out
 
+    if positive_model is not None and all(k in positive_model for k in ["preprocessor", "nn", "reference"]):
+        query = candidates.copy()
+        # Ligand and family are fixed by design but may not be materialized in the candidate frame.
+        for field in ["Legante", "Famiglia_Legante", "Metallo", "Procedura_Sintetica"]:
+            if field not in query:
+                query[field] = base.get(field, "Unknown")
+            else:
+                query[field] = query[field].fillna(base.get(field, "Unknown"))
+        Xq = positive_model["preprocessor"].transform(query)
+        n_neighbors = min(15, len(positive_model["reference"]))
+        distances, indices = positive_model["nn"].kneighbors(Xq, n_neighbors=n_neighbors)
+        refs = positive_model["reference"].reset_index(drop=True)
+        scale = float(positive_model.get("support_scale", 0.32))
+        records = []
+        for dist, idxs in zip(distances, indices):
+            neigh = refs.iloc[idxs]
+            similarities = np.exp(-np.asarray(dist, float) / max(scale, 1e-6))
+            evidence = pd.to_numeric(neigh.get("Evidence_Weight", 1.0), errors="coerce").fillna(0.65).to_numpy(float)
+            weighted = similarities * evidence
+            support = float(np.clip(0.65 * np.max(weighted) + 0.35 * np.average(weighted, weights=np.maximum(evidence, 1e-6)), 0, 1))
+            count = int(np.sum(weighted >= 0.65))
+            best = int(np.argmax(weighted))
+            if support >= 0.74 and count >= 2:
+                tier = "Strong positive precedent"
+            elif support >= 0.52:
+                tier = "Moderate positive precedent"
+            else:
+                tier = "Limited positive precedent"
+            records.append({
+                "Positive_support_score": support,
+                "Positive_support_count": count,
+                "Nearest_positive_similarity": float(similarities[best]),
+                "Nearest_positive_ID": str(neigh.iloc[best].get("Positive_ID", "")),
+                "Nearest_positive_quality": str(neigh.iloc[best].get("Quality_Tier", "")),
+                "Evidence_tier": tier,
+            })
+        return pd.DataFrame(records, index=candidates.index)
+
+    # Backward-compatible heuristic for deployments missing the fitted artifact.
     refs = _select_positive_templates(positive_db, base)
     if refs.empty:
         refs = positive_db.head(500).copy()
@@ -328,48 +370,29 @@ def _positive_support(positive_db: pd.DataFrame, base: Dict[str, Any], candidate
     cat_fields = ["Metallo", "Legante", "Famiglia_Legante", "Counterion_Class", "Solvente", "Additivo_Colinker"]
     cat_weights = np.array([0.20, 0.23, 0.12, 0.09, 0.09, 0.04], float)
     num_weights = np.array([0.075, 0.065, 0.055, 0.045, 0.03], float)
-
     ref_cat = {f: refs.get(f, pd.Series("", index=refs.index)).fillna("").astype(str).map(_norm).to_numpy() for f in cat_fields}
     ref_num = {f: pd.to_numeric(refs.get(f, pd.Series(np.nan, index=refs.index)), errors="coerce").to_numpy(float) for f in num_fields}
     ref_ids = refs.get("Positive_ID", refs.get("ID", pd.Series("", index=refs.index))).astype(str).to_numpy()
-
     records = []
     for _, c in candidates.iterrows():
         sim = np.zeros(len(refs), float)
         for w, f in zip(cat_weights, cat_fields):
             sim += w * (ref_cat[f] == _norm(c.get(f))).astype(float)
         for w, f in zip(num_weights, num_fields):
-            lo, hi = bounds[f]
-            scale = max(hi - lo, 1e-8)
-            vals = ref_num[f]
+            lo, hi = bounds[f]; scale = max(hi - lo, 1e-8); vals = ref_num[f]
             cv = pd.to_numeric(pd.Series([c.get(f)]), errors="coerce").iloc[0]
             component = np.where(np.isfinite(vals) & np.isfinite(cv), np.exp(-np.abs(vals - float(cv)) / (0.22 * scale + 1e-8)), 0.35)
             sim += w * component
-        order = np.argsort(sim)[::-1]
-        top = sim[order[: min(5, len(order))]]
-        maximum = float(top[0]) if len(top) else 0.0
-        top_mean = float(np.mean(top)) if len(top) else 0.0
-        support = float(np.clip(0.70 * maximum + 0.30 * top_mean, 0, 1))
-        count = int(np.sum(sim >= 0.72))
-        if support >= 0.78 and count >= 3:
-            tier = "Strong positive precedent"
-        elif support >= 0.62:
-            tier = "Moderate positive precedent"
-        else:
-            tier = "Limited positive precedent"
-        records.append({
-            "Positive_support_score": support,
-            "Positive_support_count": count,
-            "Nearest_positive_similarity": maximum,
-            "Nearest_positive_ID": ref_ids[order[0]] if len(order) else "",
-            "Evidence_tier": tier,
-        })
+        order = np.argsort(sim)[::-1]; top = sim[order[: min(5, len(order))]]
+        maximum = float(top[0]) if len(top) else 0.0; top_mean = float(np.mean(top)) if len(top) else 0.0
+        support = float(np.clip(0.70 * maximum + 0.30 * top_mean, 0, 1)); count = int(np.sum(sim >= 0.72))
+        tier = "Strong positive precedent" if support >= 0.78 and count >= 3 else ("Moderate positive precedent" if support >= 0.62 else "Limited positive precedent")
+        records.append({"Positive_support_score": support,"Positive_support_count": count,"Nearest_positive_similarity": maximum,"Nearest_positive_ID": ref_ids[order[0]] if len(order) else "","Nearest_positive_quality":"","Evidence_tier": tier})
     return pd.DataFrame(records, index=candidates.index)
-
 
 def joint_optimize(
     base: Dict[str, Any], model_artifact: Dict[str, Any], features: Sequence[str], db: pd.DataFrame,
-    positive_db: Optional[pd.DataFrame] = None,
+    positive_db: Optional[pd.DataFrame] = None, positive_model: Optional[Dict[str, Any]] = None,
     objective: str = "Balanced conditions", n_samples: int = 2500, top_n: int = 12,
     constraints: Optional[Dict[str, Any]] = None, random_state: int = 260730,
 ) -> Tuple[pd.DataFrame, Dict[str, Any]]:
@@ -458,7 +481,7 @@ def joint_optimize(
     probs = model_artifact["weights"][0] * model_artifact["rf_model"].predict_proba(x) + model_artifact["weights"][1] * model_artifact["ligand_text_model"].predict_proba(x)
     candidates["P_Failed"], candidates["P_Amorphous"], candidates["P_Crystalline"] = probs[:, 0], probs[:, 1], probs[:, 2]
     candidates["AD_score"] = _domain_score(db, base, candidates, bounds)
-    positive_scores = _positive_support(evidence_db, base, candidates, bounds)
+    positive_scores = _positive_support(evidence_db, base, candidates, bounds, positive_model=positive_model)
     candidates = pd.concat([candidates, positive_scores], axis=1)
     candidates["Green_penalty"] = candidates["Solvente"].map(_green_penalty)
     candidates["Speed_penalty"] = (np.clip(candidates["Temperatura_C"] / 220, 0, 1) + np.clip(np.log1p(candidates["Tempo_ore"]) / np.log1p(168), 0, 1)) / 2
@@ -496,7 +519,7 @@ def joint_optimize(
         result.loc[(result["Green_penalty"] + result["Speed_penalty"]).idxmin(), "Strategy"] = "Resource-conscious"
 
     metadata = {
-        "optimizer_version": "10.3.0",
+        "optimizer_version": "10.4.0",
         "objective": objective,
         "requested_samples": n_samples,
         "feasible_candidates": int(len(candidates)),
@@ -507,6 +530,6 @@ def joint_optimize(
         "fixed_variables": ["Legante", "Ligand_SMILES", "Famiglia_Legante", "Metallo"],
         "optimized_variables": ["Sale_Metallico", "Counterion_Class", "Hydration_Number", "Oxidation_State", "Solvente", "Additivo_Colinker", "Temperatura_C", "Tempo_ore", "mmol_Legante", "mmol_Sale", "Rapporto_LM", "Volume solvente"],
         "unsupported_not_optimized": ["pH", "solvent fractions", "modulator equivalents", "heating ramp", "cooling rate", "stirring", "addition order", "vessel filling fraction", "synthetic method"],
-        "model_scope": "Frozen balanced v8.0 outcome predictor plus a separate successful-synthesis recommendation layer. Positive support is not interpreted as an absolute success probability.",
+        "model_scope": "Frozen balanced v8.0 outcome predictor plus a quality- and diversity-weighted conditional successful-synthesis recommendation model. Positive support is not interpreted as an absolute success probability.",
     }
     return result, metadata

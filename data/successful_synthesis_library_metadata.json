@@ -1,12 +1,16 @@
 {
-  "version": "10.3.0",
+  "version": "10.4.0",
   "rows": 694,
-  "unique_ligands": 92,
-  "unique_metals": 20,
-  "source_counts": {
-    "development_positive": 555,
-    "external_positive_after_locked_evaluation": 139
+  "ligands": 92,
+  "families": 11,
+  "metals": 20,
+  "quality_tiers": {
+    "A": 605,
+    "B": 89
   },
-  "purpose": "Positive-condition recommendation and support scoring only. Not used to retrain the balanced outcome predictor.",
-  "publication_bias_warning": "Positive-only records cannot estimate absolute synthesis success probabilities and are therefore combined with the frozen three-class predictor."
+  "mean_completeness": 0.9699207492795389,
+  "mean_evidence_weight": 0.8198916280941848,
+  "sha256": "223eff88e8aa8c904c7127062c95b86866bf56df6e68f6f7d60a26bd8a2c3358",
+  "external_literature_rows_added": 0,
+  "data_integrity_note": "No synthetic or unverified literature records were fabricated. The release upgrades normalization, evidence weighting and conditional recommendation on the 694 curated crystalline syntheses already available."
 }

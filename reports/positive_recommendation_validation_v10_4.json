@@ -1,0 +1,16 @@
+{
+  "Median_Top5_Distance": 0.06994211298693867,
+  "Same_Metal_Top5": 0.9425493716337523,
+  "Same_Family_Top5": 0.8833034111310593,
+  "Solvent_Match_Top5": 0.6983842010771992,
+  "Temperature_Within30C_Top5": 0.9461400359066428,
+  "Time_Within3x_Top5": 0.9910233393177738,
+  "rows": 694,
+  "ligands": 92,
+  "metals": 20,
+  "quality_tiers": {
+    "A": 605,
+    "B": 89
+  },
+  "note": "Retrospective retrieval validation. These metrics assess recovery of related successful conditions, not probability of synthesis success."
+}

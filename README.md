@@ -79,7 +79,7 @@ Version 10.3 keeps the outcome predictor and optimizer scientifically separate.
 The included positive library contains 694 deduplicated crystalline-condition records covering 92 ligands and 20 metals. It is designed to be expanded with additional curated literature syntheses in future releases.
 
 
-## Interface update v10.3.1
+## Interface update v10.4.0
 - Press Enter in the ligand field to start resolution.
 - Reset parameters button restores prediction defaults.
 - Optimizer displays only the five strongest actionable proposals.
