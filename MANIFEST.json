@@ -1,6 +1,6 @@
 {
-  "version": "10.7.1",
-  "file_count": 110,
+  "version": "10.7.2",
+  "file_count": 112,
   "files": [
     {
       "path": ".gitignore",
@@ -24,18 +24,18 @@
     },
     {
       "path": "README.md",
-      "size": 7725,
-      "sha256": "385179a4c524ff2059c4af505e77b39a043d19b2aa5ab3e5c597280a9c7428f5"
+      "size": 8156,
+      "sha256": "3432bcb7a579b26ff2be2b022ac57713599d0ce92ceeeb1f59b3e96f0d43f173"
     },
     {
       "path": "VERSION",
       "size": 7,
-      "sha256": "81c0a5ec8bc5c861c9e4e3a26ec28b95d4f029c833a5d5916aaf6541be7772a6"
+      "sha256": "2a7d94d987c0b9383b81195fe37b9f7c65d1abb39bdf41e93cc8550a4431aef5"
     },
     {
       "path": "app.py",
-      "size": 34408,
-      "sha256": "50fc4553fe92657496b13f38d4fa480e9eb1c5d3a91a7c583dc4be4268227c9e"
+      "size": 34608,
+      "sha256": "a266c2177e9ae63f71843c3f6c2cf652c2bb33973141b28b41f1d60f89f064b6"
     },
     {
       "path": "data/Dataset_Multivariate_Schema_v10.csv",
@@ -166,6 +166,11 @@
       "path": "reports/DEPLOYMENT_FIX_v9_5_1.md",
       "size": 348,
       "sha256": "434b56c7bc744d4af90aa4975e967731828f6c19a1bca066af2bbe9b4eb556fd"
+    },
+    {
+      "path": "reports/INTERFACE_UPDATE_v10_7_2.md",
+      "size": 894,
+      "sha256": "65eaa135c2638735522721d9e92989afe14fc0d635ceff4c1a85f73656a68b3d"
     },
     {
       "path": "reports/INTERFACE_UPDATE_v9_1.md",
@@ -419,8 +424,8 @@
     },
     {
       "path": "src/chem.py",
-      "size": 7429,
-      "sha256": "5e7ec3f59a6f437163e5242422805793f29c6e0fcd0539a425af40514dab86f5"
+      "size": 9281,
+      "sha256": "b915c142f80fb186822f7587ea61dc23de8a923e53f8d75e260b45ac5fd8a13c"
     },
     {
       "path": "src/engine.py",
@@ -459,8 +464,8 @@
     },
     {
       "path": "tests/test_deployment_compatibility_v10_7_1.py",
-      "size": 416,
-      "sha256": "287d8270eba0684c280a97ddab8a13444458f856abd34b8450c79e353aceed16"
+      "size": 503,
+      "sha256": "5abfec81f435fb55d6bf0f5f7fc51ab4c9af93ab36abdf3495d47e88343f6796"
     },
     {
       "path": "tests/test_evidence_layer_v10_7.py",
@@ -471,6 +476,11 @@
       "path": "tests/test_hybrid_optimizer.py",
       "size": 1227,
       "sha256": "1a9ac71d6d5a8a3255af23141f6b7a42f5cdc2b16be641de72538edbe36e4aaf"
+    },
+    {
+      "path": "tests/test_interface_v10_7_2.py",
+      "size": 917,
+      "sha256": "3e442451c2493504d1f428d6b7ecdb34c15a03badb5d3d5a93485b2b9f04605c"
     },
     {
       "path": "tests/test_joint_optimizer.py",

@@ -4,7 +4,7 @@ from pathlib import Path
 import pandas as pd
 import streamlit as st
 from rdkit import Chem
-from src.chem import METALS, FAMILIES, COUNTERIONS, infer_family, precursor_formula, parse_salt
+from src.chem import METALS, FAMILIES, COUNTERIONS, infer_family, precursor_formula, parse_salt, hsab_acid_class
 import src.engine as engine
 
 predict = engine.predict
@@ -50,11 +50,11 @@ def optimize_joint(*args, **kwargs):
 from src.resolver import resolve_ligand, confirmed_entry
 from src.literature import search_literature
 
-APP_VERSION = "10.7.1"
+APP_VERSION = "10.7.2"
 
 st.set_page_config(page_title="MOF Synthesis Assistant", page_icon="🧪", layout="wide")
-st.title("🧪 MOF Synthesis Assistant v10.7.1")
-st.caption("Version 10.7.1 · Canonical chemical inputs and verified experimental precedents")
+st.title("🧪 MOF Synthesis Assistant v10.7.2")
+st.caption("Version 10.7.2 · Streamlined interface and HSAB-guided metal selection")
 st.caption("Prediction evaluates the exact entered conditions. Optimization separately combines three-class risk, successful precedents, feasibility and applicability while keeping only ligand and metal fixed.")
 page = st.sidebar.radio("Module", ["Predict synthesis", "Literature search", "About"])
 
@@ -118,6 +118,17 @@ def _reset_prediction_inputs(prefix="p"):
     for key in [
         "prediction_result", "optimization_results", "optimization_metadata",
         "joint_objective", "joint_max_temp", "joint_max_time", "joint_samples",
+        "joint_keep_precursor", "joint_keep_solvent", "joint_keep_additive",
+        "joint_banned",
+    ]:
+        st.session_state.pop(key, None)
+
+
+def _reset_optimizer_inputs():
+    """Restore optimizer controls without changing the synthesis input form."""
+    for key in [
+        "optimization_results", "optimization_metadata", "joint_objective",
+        "joint_max_temp", "joint_max_time", "joint_samples",
         "joint_keep_precursor", "joint_keep_solvent", "joint_keep_additive",
         "joint_banned",
     ]:
@@ -301,8 +312,13 @@ def input_form(prefix="p"):
     inferred=infer_family(" ".join(filter(None,[ligand,canonical_title])))
     fam=st.selectbox("Ligand family",FAMILIES,index=FAMILIES.index(inferred) if inferred in FAMILIES else len(FAMILIES)-1,key=prefix+"fam")
     st.subheader("Metal precursor")
-    a,b,c=st.columns(3); metals=sorted(METALS)
-    metal=a.selectbox("Metal",metals,index=metals.index("Zn"),key=prefix+"metal")
+    a,b,c=st.columns(3); metals=sorted(m for m in METALS if m!='H')
+    selected_oxidation=st.session_state.get(prefix+"ox",2)
+    metal=a.selectbox(
+        "Metal ion (HSAB class)",metals,index=metals.index("Zn"),key=prefix+"metal",
+        format_func=lambda symbol:f"{symbol} — {hsab_acid_class(symbol,selected_oxidation)}",
+        help="Indicative Pearson HSAB classification for the selected oxidation state.",
+    )
     oxidation=b.selectbox("Oxidation state",[1,2,3,4,5,6,"unknown"],index=1,key=prefix+"ox")
     counterion=c.selectbox("Counterion / precursor class",COUNTERIONS,key=prefix+"counter")
     hydration=st.number_input("Hydration number",0.0,20.0,0.0,0.5,key=prefix+"hyd")
@@ -310,6 +326,7 @@ def input_form(prefix="p"):
     salt=st.text_input("Full metal precursor formula",value=suggested,key=prefix+"salt")
     parsed=parse_salt(salt)
     st.caption(f"Parsed precursor: counterion = {parsed.get('Counterion_Class')}; hydration = {parsed.get('Hydration_Number')}; oxidation state = {parsed.get('Oxidation_State')}")
+    st.caption(f"HSAB classification: {metal}({oxidation if oxidation!='unknown' else '?'}) is treated as **{hsab_acid_class(metal,oxidation).lower()}**. This is an indicative classification and can depend on oxidation state and coordination environment.")
     st.subheader("Reaction conditions")
     c1,c2,c3=st.columns(3)
     solvent=c1.text_input("Solvent or solvent mixture",value="DMF",key=prefix+"solv")
@@ -403,19 +420,26 @@ def render_prediction(result):
         banned_text=st.text_input("Excluded solvents (comma-separated, optional)",placeholder="e.g. DMF, NMP",key="joint_banned")
         st.caption("Variables not learned by the frozen model—such as pH, heating ramp, cooling rate and addition order—are not optimized yet and are explicitly reported as unsupported.")
         button_label="Optimize synthesis conditions" if pcr<0.65 else "Explore joint alternatives"
-        if st.button(button_label,type="primary",key="context_optimize"):
-            constraints={
-                "max_temperature":max_temp,"max_time":max_time,
-                "keep_precursor":keep_precursor,"keep_solvent":keep_solvent,"keep_additive":keep_additive,
-                "banned_solvents":[x.strip() for x in banned_text.split(',') if x.strip()],
-            }
-            with st.spinner("Combining successful synthesis templates with broad multivariable exploration, then evaluating risk, feasibility and applicability..."):
-                try:
-                    out,meta=optimize_joint(values,objective=objective,n_samples=samples,top_n=12,constraints=constraints)
-                    st.session_state['optimization_results']=out
-                    st.session_state['optimization_metadata']=meta
-                except Exception as exc:
-                    st.error(f"Joint optimization failed: {exc}")
+        optimize_col,reset_col=st.columns(2)
+        with optimize_col:
+            if st.button(button_label,type="primary",key="context_optimize",use_container_width=True):
+                constraints={
+                    "max_temperature":max_temp,"max_time":max_time,
+                    "keep_precursor":keep_precursor,"keep_solvent":keep_solvent,"keep_additive":keep_additive,
+                    "banned_solvents":[x.strip() for x in banned_text.split(',') if x.strip()],
+                }
+                with st.spinner("Combining successful synthesis templates with broad multivariable exploration, then evaluating risk, feasibility and applicability..."):
+                    try:
+                        out,meta=optimize_joint(values,objective=objective,n_samples=samples,top_n=12,constraints=constraints)
+                        st.session_state['optimization_results']=out
+                        st.session_state['optimization_metadata']=meta
+                    except Exception as exc:
+                        st.error(f"Joint optimization failed: {exc}")
+        with reset_col:
+            st.button(
+                "Reset optimizer fields",on_click=_reset_optimizer_inputs,
+                key="reset_optimizer",use_container_width=True,
+            )
     out=st.session_state.get('optimization_results')
     meta=st.session_state.get('optimization_metadata')
     if out is not None and len(out):
@@ -456,16 +480,7 @@ def render_prediction(result):
             if col in display: display[col]=pd.to_numeric(display[col],errors='coerce').round(3)
         st.caption("Top five proposals ranked by the overall hybrid optimization score.")
         st.dataframe(display,use_container_width=True,hide_index=True)
-        with st.expander("Scientific scope of this optimization"):
-            st.write("**Fixed:**",", ".join((meta or {}).get('fixed_variables',[])))
-            st.write("**Jointly optimized:**",", ".join((meta or {}).get('optimized_variables',[])))
-            st.write("**Successful synthesis records available:**", f"{(meta or {}).get('positive_library_rows',0):,}")
-            st.write("**Candidate generation:**", f"{(meta or {}).get('template_candidates',0):,} successful-template mutations + {(meta or {}).get('exploration_candidates',0):,} broad exploratory candidates")
-            st.write("**Not optimized yet because absent from the frozen model:**",", ".join((meta or {}).get('unsupported_not_optimized',[])))
-            st.warning("Successful-synthesis support is a plausibility score, not an absolute probability. These remain model-ranked experimental hypotheses and require experimental confirmation.")
         st.download_button("Download joint experimental plan",out.to_csv(index=False).encode(),"mof_joint_optimization_plan.csv","text/csv")
-    with st.expander("Similar experimental records"):
-        st.dataframe(similar(values),use_container_width=True)
     if not precedents.empty:
         with st.expander("Verified laboratory and literature precedents"):
             evidence_columns=['Evidence_ID','Match_Level','Verified_Outcome','Evidence_Source','Source_DOI','Evidence_Statement','Sale_Metallico','Solvente','Additivo_Colinker','Temperatura_C','Tempo_ore','Rapporto_LM','Volume solvente']
@@ -540,6 +555,6 @@ elif page=="Literature search":
         )
 else:
     st.markdown("""### Scope and scientific limitations
-Version 10.7.1 normalizes public ligand families and common linker aliases before prediction, and reports verified laboratory or literature precedents independently from model probabilities. Seventeen eligible laboratory records and nine PXRD/XRD-supported literature protocols are available to the evidence layer. The in-situ ibuprofen experiments and the ambiguous DDS1 record remain outside the principal evidence layer. The evidence loader now remains compatible with temporary mixed-file states during Streamlit deployment.
+Version 10.7.2 normalizes public ligand families and common linker aliases before prediction, reports verified laboratory or literature precedents independently from model probabilities, and adds oxidation-state-aware HSAB labels to the metal selector. The public interface no longer displays the scientific-scope and similar-record diagnostic panels, while an optimizer reset button restores its controls without changing the synthesis inputs.
 
 The explanation is **model-based and descriptive, not causal**. Optimized conditions are hypotheses for experimental prioritization, not guarantees of MOF formation. The predictive core remains the validated frozen v8.0 ensemble: two retraining candidates were rejected because their gain in crystalline recall reduced three-class specificity. Verified evidence is therefore displayed separately rather than being converted into an uncalibrated probability.""")

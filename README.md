@@ -118,3 +118,10 @@ The exact-condition predictor now reports whether numerical inputs lie within th
 ### Deployment hotfix v10.7.1
 
 The optional verified-evidence loader now uses a compatibility-safe lookup. If Streamlit briefly combines the new `app.py` with a cached older `src/engine.py`, the evidence panel is temporarily disabled instead of raising an `AttributeError` and stopping the application.
+
+### Interface hotfix v10.7.2
+
+- Removed the public “Scientific scope of this optimization” and “Similar experimental records” expanders.
+- Added a reset button dedicated to optimizer controls and results.
+- Added oxidation-state-aware Pearson HSAB labels (`Hard acid`, `Borderline acid`, `Soft acid`) to the metal-ion selector.
+- Removed hydrogen from the metal-ion list while keeping the underlying model data unchanged.
