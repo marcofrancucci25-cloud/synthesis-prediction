@@ -1,6 +1,6 @@
 {
-  "version": "10.6.0",
-  "file_count": 86,
+  "version": "10.7.0",
+  "file_count": 108,
   "files": [
     {
       "path": ".gitignore",
@@ -24,18 +24,18 @@
     },
     {
       "path": "README.md",
-      "size": 6562,
-      "sha256": "9b72ca32b37694ced022834751492e5e46befb21715c4d1a3a8cbe6f187299fe"
+      "size": 7421,
+      "sha256": "9f100f956213fe7d728f2b31d45b0429d8f10acfd2b0dfc8e3f8169a21159a99"
     },
     {
       "path": "VERSION",
       "size": 7,
-      "sha256": "3d61dd9c21610b8daa0474613484313db3cf815df0b5fa3413ba09489eeaf6b5"
+      "sha256": "0eb89770edc68d74f3aa0939923f8e5f678703ecabc781a39e1bc497250d02ea"
     },
     {
       "path": "app.py",
-      "size": 32525,
-      "sha256": "bd824fa4d6c1ec5737c2d9350e7f4c0aa78ddc9c35bb93336f1d9adadd7f863d"
+      "size": 33898,
+      "sha256": "ee38496ef623bcf6404ee235200d17f17fe2c403299857536cd32d904910c93d"
     },
     {
       "path": "data/Dataset_Multivariate_Schema_v10.csv",
@@ -81,6 +81,11 @@
       "path": "data/ligand_structure_registry_v10_5.csv",
       "size": 8444,
       "sha256": "890031bbd63bacd57dfa50d187e917487e389fc7516f1b1c87f311edb46c40ee"
+    },
+    {
+      "path": "data/literature_crystalline_challenge_v10_6.csv",
+      "size": 3085,
+      "sha256": "1302df561421e58a136ce11a701710d0d9983c5657b237eea1d6408800b95093"
     },
     {
       "path": "data/successful_synthesis_import_template_v10_3.csv",
@@ -208,6 +213,16 @@
       "sha256": "4dcc1ccccf7f2710c4db821364ed007ae5c4542473f159bdcbbc4246f1372cf1"
     },
     {
+      "path": "reports/LITERATURE_CRYSTALLINE_BENCHMARK_v10_6.md",
+      "size": 5237,
+      "sha256": "87108217b0a41930ec27887aabbb591c46f349d9732263f740b6be946a80fc71"
+    },
+    {
+      "path": "reports/PREDICTOR_VALIDATION_DECISION_v10_7.md",
+      "size": 2861,
+      "sha256": "b19ede73fa96d5167ba430cc6b3c3573e4ad1a061ee36020b17677abe422ea7c"
+    },
+    {
       "path": "reports/SCIENTIFIC_UPDATE_v10_0.md",
       "size": 1214,
       "sha256": "fb864ddaabcc7677c0494ae27532306d1ac24008e0d6a0e9d70b5d4d12472879"
@@ -268,9 +283,24 @@
       "sha256": "e4d03968af24a6e280809624d2f5b5d69da73f50247ca0c060cba5873b99f519"
     },
     {
+      "path": "reports/external_model_comparison_v10_7.csv",
+      "size": 9243,
+      "sha256": "227efc93abcf1528cc35f2e5025709584969b9a29770383e3f1b68d57bc7bd8d"
+    },
+    {
+      "path": "reports/external_predictions_v10_7_candidate.csv",
+      "size": 2677,
+      "sha256": "296075fbc37ec6ed51763c9eca715d358fa121433e5e2289637b8b5e8ffa408c"
+    },
+    {
       "path": "reports/external_predictions_v8_0.csv",
       "size": 33645,
       "sha256": "b353322358712c37ef7f922fc540bc6735e8bc89b044560b0c28b34acc795326"
+    },
+    {
+      "path": "reports/grouped_cv_fold_metrics_v10_7_candidate.csv",
+      "size": 3916,
+      "sha256": "b7a6ef4f7d9dc1b7b4a4642d342e4a034be64d056f4f9557ca64dc5c4cef6fbf"
     },
     {
       "path": "reports/grouped_cv_fold_metrics_v8_0.csv",
@@ -278,9 +308,24 @@
       "sha256": "baf0bf82f52c7251e2700aa1a8dfb4436accee099951df8178949eaad5c98501"
     },
     {
+      "path": "reports/grouped_cv_predictions_v10_7_candidate.csv",
+      "size": 288798,
+      "sha256": "d4a0747ecaf9d3245d75833ec8f666435ec1824ac073c47d11f800001e744bac"
+    },
+    {
       "path": "reports/grouped_cv_summary_v8_0.csv",
       "size": 501,
       "sha256": "332f55de6cf72d659c99f5810806f7e81812a2500338dd3c1e202cad071e6551"
+    },
+    {
+      "path": "reports/grouped_cv_volume_deleaked_fold_metrics_v10_7.csv",
+      "size": 1539,
+      "sha256": "f177de8e8ed7f621425a51d33d514b2733747db9ebd51b318807c452a31a3284"
+    },
+    {
+      "path": "reports/grouped_cv_volume_deleaked_predictions_v10_7.csv",
+      "size": 114317,
+      "sha256": "4bc9e4684725352fbe7f7af8eae790447bbaa7d0dd24cc5aaf6cb1ff489d826d"
     },
     {
       "path": "reports/hybrid_optimizer_validation_v10_3.csv",
@@ -293,9 +338,39 @@
       "sha256": "6160b5c79711fdd800e206df9503c91dc76fbbf30fedb4fd9f823d851c38e80e"
     },
     {
+      "path": "reports/lab_augmented_validation_v10_7_r1.json",
+      "size": 1752,
+      "sha256": "34203d1f872240564ed3596ff69b3237f3fd522f4cd6d3f7b7d6b13019b45af3"
+    },
+    {
+      "path": "reports/lab_condition_cv_v10_7_r1.csv",
+      "size": 2945,
+      "sha256": "0084e17d60b7822e1d77cb67c7076f34e8f965319cf2438ba5d51de1b6b2aa43"
+    },
+    {
       "path": "reports/laboratory_integration_summary_v10_6.json",
       "size": 593,
       "sha256": "fc95b8f1ac9c2951e67f4ad86a18c93e225504c59c7edd4e3266b5d8211790ce"
+    },
+    {
+      "path": "reports/legacy_grouped_cv_v10_7_lab_r1.csv",
+      "size": 1323,
+      "sha256": "0195721ddc83b7f24372d3097126f44a344e10f48854c0e7676e18bbfa9560c3"
+    },
+    {
+      "path": "reports/literature_crystalline_benchmark_v10_6.csv",
+      "size": 5370,
+      "sha256": "ab2ec62698ce8a6213c4cb7004dac4a56126b1e071678765447a5fd03118395a"
+    },
+    {
+      "path": "reports/literature_crystalline_benchmark_v10_6.json",
+      "size": 874,
+      "sha256": "9595ef84289052cca35459a099e3ad1a241d47fea6b713eccd38f5df17c507fe"
+    },
+    {
+      "path": "reports/literature_predictions_v10_7_lab_r1.csv",
+      "size": 864,
+      "sha256": "861cf464c3317a00caae45f92cc4c2ab4516aafb19273034d8b52543d24a15b6"
     },
     {
       "path": "reports/positive_recommendation_validation_v10_4.csv",
@@ -308,6 +383,11 @@
       "sha256": "db8c8680e16d5b545ad0f6e38765283ab4a614eb03f46ca9e5cd036f100caa10"
     },
     {
+      "path": "reports/predictor_validation_v10_7_candidate.json",
+      "size": 2782,
+      "sha256": "b6aae3511ab1812b57bc5b77280509e6dd330c4822d782db176cedf58cae6d24"
+    },
+    {
       "path": "reports/structural_grouped_cv_v10_5.csv",
       "size": 799,
       "sha256": "7ba7136b82b44ad534115ada0cde5f9b3ab0a4be08c6f91a950999323fcab1db"
@@ -316,6 +396,11 @@
       "path": "reports/structural_validation_summary_v10_5.json",
       "size": 845,
       "sha256": "5833fabc0cc4d634ae34ba6de13005fe5f1442b09994a6a60c640d0becfa8905"
+    },
+    {
+      "path": "reports/volume_deleaked_validation_v10_7.json",
+      "size": 3655,
+      "sha256": "8bf4c4ee58ecefdbbbb8c148ed3bf1c435dd9bd29de4820a50c1bf5a903a8f31"
     },
     {
       "path": "requirements.txt",
@@ -329,13 +414,13 @@
     },
     {
       "path": "src/chem.py",
-      "size": 4373,
-      "sha256": "6c6549cc76487aa42d465355395db632c4c0f47ac7478cf338fb04072e668cf6"
+      "size": 7429,
+      "sha256": "5e7ec3f59a6f437163e5242422805793f29c6e0fcd0539a425af40514dab86f5"
     },
     {
       "path": "src/engine.py",
-      "size": 9927,
-      "sha256": "60df26a5ba7ce528ca81dd5c0696ac598a8801712563b7c39e3f5cf1d732e18f"
+      "size": 15593,
+      "sha256": "5b68e8e5dc54fff6ecc50b856f3d9c428d6fa9db6d7209adb00abee3aeea0f01"
     },
     {
       "path": "src/literature.py",
@@ -366,6 +451,11 @@
       "path": "tests/smoke_test.py",
       "size": 801,
       "sha256": "99f027f50bee46a032482eaee2b95d52e704dbd025cb02113c20d9c82d774fe5"
+    },
+    {
+      "path": "tests/test_evidence_layer_v10_7.py",
+      "size": 1893,
+      "sha256": "66fbd9c1f8e0c1e70f6be702218454265504c4943e1cf83bb551af8e2395ecd2"
     },
     {
       "path": "tests/test_hybrid_optimizer.py",
@@ -408,9 +498,19 @@
       "sha256": "58d1e683ba35d568326f3246386d47e2721de3d36d00e4854dc56c3238a47256"
     },
     {
+      "path": "tools/build_manifest.py",
+      "size": 1329,
+      "sha256": "22466e8e1abeb8d6b329fa72cccab8b80fa3b917e1913c490043b5972d2338cb"
+    },
+    {
       "path": "tools/curate_ligand_structures.py",
       "size": 2843,
       "sha256": "edbabef27d0bdaab9e54eeb0f15db25635a0896983e59a37e7bb9674f1d56bdc"
+    },
+    {
+      "path": "tools/evaluate_volume_deleaked_predictor_v10_7.py",
+      "size": 5363,
+      "sha256": "649942e63bf9eaf982ef70d610c47837ba839911c82fb25e943683e1e33bd7de"
     },
     {
       "path": "tools/import_successful_syntheses.py",
@@ -421,6 +521,21 @@
       "path": "tools/integrate_lab_syntheses_v10_6.py",
       "size": 9473,
       "sha256": "863612283b62ce306aaa6cf8572195280f58d53ea4867741f08f3d7c3e976dbf"
+    },
+    {
+      "path": "tools/run_literature_crystalline_challenge_v10_6.py",
+      "size": 4787,
+      "sha256": "fc5266764583044f460afbdf214e91f13b4e8ab19cd25a9466a163a6cc576eda"
+    },
+    {
+      "path": "tools/train_lab_augmented_predictor_v10_7.py",
+      "size": 6662,
+      "sha256": "809b053821a3999b7ee09f2c1f3eb8ba3fc871eed86abdf34914c787f88d38a5"
+    },
+    {
+      "path": "tools/train_leakage_resistant_predictor_v10_7.py",
+      "size": 13934,
+      "sha256": "37cd1b45695b2ce16253f07e85ffd81ca023e1b5d5cc2e4638a4edd5b93dc5f6"
     },
     {
       "path": "tools/train_structural_predictor_v10_5.py",

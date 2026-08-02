@@ -105,3 +105,12 @@ The exact-condition predictor now reports whether numerical inputs lie within th
 - Consolidated one exact duplicate and aggregated repeated positive condition signatures instead of treating them as independent templates.
 - Added 10 unique PXRD-supported laboratory conditions to the positive precedent library.
 - The original v8 training database and external-test claims remain unchanged. Laboratory evidence is used for precedent retrieval and optimization support only.
+
+## Predictive robustness and verified evidence (v10.7.0)
+
+- Public UI families are translated into the historical model vocabulary before prediction.
+- Common linker aliases such as H2BDC, terephthalic acid and benzene-1,4-dicarboxylic acid share one model-facing identity.
+- Nine PXRD/XRD-supported literature protocols and the 17 eligible laboratory records form a separate verified-evidence layer.
+- Exact and close experimental precedents are shown independently from model probabilities, with DOI provenance where available.
+- Three retraining strategies were evaluated and rejected for global deployment because improvements in crystalline recall reduced three-class specificity and balanced accuracy.
+- The production predictor therefore remains the frozen v8.0 ensemble; verified evidence is never converted into a fictitious calibrated probability.

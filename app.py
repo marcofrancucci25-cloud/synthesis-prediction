@@ -11,6 +11,7 @@ predict = engine.predict
 applicability = engine.applicability
 prediction_validity = engine.prediction_validity
 similar = engine.similar
+verified_precedents = engine.verified_precedents
 explain_prediction = engine.explain_prediction
 DB = engine.DB
 
@@ -40,11 +41,11 @@ def optimize_joint(*args, **kwargs):
 from src.resolver import resolve_ligand, confirmed_entry
 from src.literature import search_literature
 
-APP_VERSION = "10.6.0"
+APP_VERSION = "10.7.0"
 
 st.set_page_config(page_title="MOF Synthesis Assistant", page_icon="🧪", layout="wide")
-st.title("🧪 MOF Synthesis Assistant v10.6.0")
-st.caption("Version 10.6.0 · Integrated laboratory evidence with frozen-model validity preserved")
+st.title("🧪 MOF Synthesis Assistant v10.7.0")
+st.caption("Version 10.7.0 · Canonical chemical inputs and verified experimental precedents")
 st.caption("Prediction evaluates the exact entered conditions. Optimization separately combines three-class risk, successful precedents, feasibility and applicability while keeping only ligand and metal fixed.")
 page = st.sidebar.radio("Module", ["Predict synthesis", "Literature search", "About"])
 
@@ -319,6 +320,7 @@ def input_form(prefix="p"):
 
 def render_prediction(result):
     values=result['values']; probabilities=result['probabilities']; predicted=result['predicted']; ad=result['ad']; validity=result.get('validity') or ad.get('validity',{})
+    precedents=result.get('precedents',pd.DataFrame())
     labels=["Failed/no useful product","Amorphous or uncertain product","Crystalline MOF"]
     pcr=float(probabilities[2])
     if pcr>=0.75: signal="🟢 Very favorable conditions"
@@ -331,6 +333,22 @@ def render_prediction(result):
     c1.metric("Probability of crystalline MOF",f"{pcr:.1%}")
     c2.metric("Applicability domain",ad['label'])
     c3.metric("Prediction validity",validity.get('label','Not assessed'))
+    strong_precedents=precedents[precedents['Match_Level'].isin(['Exact verified protocol','Close verified protocol'])] if not precedents.empty else precedents
+    if not strong_precedents.empty:
+        strongest=strong_precedents.iloc[0]
+        outcome=strongest['Verified_Outcome']
+        source=strongest['Evidence_Source']
+        match=strongest['Match_Level']
+        if strongest['Outcome_Class']==2:
+            st.success(f"Verified experimental evidence: **{outcome}** · {match} · {source}. This evidence is reported separately and takes interpretive priority over an uncertain classifier result.")
+        elif strongest['Outcome_Class']==0:
+            st.error(f"Verified experimental evidence: **{outcome}** · {match} · {source}. The matching experiment did not yield a useful crystalline product.")
+        else:
+            st.warning(f"Verified experimental evidence: **{outcome}** · {match} · {source}.")
+        if pd.notna(strongest.get('Source_DOI')):
+            doi=str(strongest['Source_DOI']).removeprefix('https://doi.org/')
+            st.markdown(f"Source: [https://doi.org/{doi}](https://doi.org/{doi})")
+        st.caption("The probability above remains the model estimate; experimental evidence is not converted into a fictitious calibrated probability.")
     if not validity.get('reliable', True):
         st.error("The entered conditions are outside or near the edge of the experimentally validated range. The numerical probabilities are shown for transparency, but should not be interpreted as reliable success estimates.")
         for issue in validity.get('issues', [])[:6]:
@@ -439,6 +457,10 @@ def render_prediction(result):
         st.download_button("Download joint experimental plan",out.to_csv(index=False).encode(),"mof_joint_optimization_plan.csv","text/csv")
     with st.expander("Similar experimental records"):
         st.dataframe(similar(values),use_container_width=True)
+    if not precedents.empty:
+        with st.expander("Verified laboratory and literature precedents"):
+            evidence_columns=['Evidence_ID','Match_Level','Verified_Outcome','Evidence_Source','Source_DOI','Evidence_Statement','Sale_Metallico','Solvente','Additivo_Colinker','Temperatura_C','Tempo_ore','Rapporto_LM','Volume solvente']
+            st.dataframe(precedents[[c for c in evidence_columns if c in precedents]],use_container_width=True,hide_index=True)
 
 
 if page=="Predict synthesis":
@@ -449,8 +471,8 @@ if page=="Predict synthesis":
     with action_right:
         st.button("Reset parameters", on_click=_reset_prediction_inputs, args=("p",), use_container_width=True)
     if run_prediction:
-        _,probabilities,predicted=predict(values); validity=prediction_validity(values); ad=applicability(values); influence,_=explain_prediction(values)
-        st.session_state['prediction_result']={'values':values,'probabilities':probabilities,'predicted':predicted,'ad':ad,'validity':validity,'influence':influence}
+        _,probabilities,predicted=predict(values); validity=prediction_validity(values); ad=applicability(values); influence,_=explain_prediction(values); precedents=verified_precedents(values)
+        st.session_state['prediction_result']={'values':values,'probabilities':probabilities,'predicted':predicted,'ad':ad,'validity':validity,'influence':influence,'precedents':precedents}
         st.session_state.pop('optimization_results',None)
         st.session_state.pop('optimization_metadata',None)
     if 'prediction_result' in st.session_state: render_prediction(st.session_state['prediction_result'])
@@ -509,6 +531,6 @@ elif page=="Literature search":
         )
 else:
     st.markdown("""### Scope and scientific limitations
-Version 10.6.0 adds normalized laboratory evidence while preserving the separation between the frozen Prediction Engine and Hybrid Optimization Engine. Seventeen eligible laboratory records are available for evidence retrieval; ten unique crystalline condition templates supplement the optimizer. The in-situ ibuprofen experiments and the ambiguous DDS1 record remain outside the principal evidence layer.
+Version 10.7.0 normalizes public ligand families and common linker aliases before prediction, and reports verified laboratory or literature precedents independently from model probabilities. Seventeen eligible laboratory records and nine PXRD/XRD-supported literature protocols are available to the evidence layer. The in-situ ibuprofen experiments and the ambiguous DDS1 record remain outside the principal evidence layer.
 
-The explanation is **model-based and descriptive, not causal**. Optimized conditions are hypotheses for experimental prioritization, not guarantees of MOF formation. The predictive core remains the frozen v8.0 ensemble; the literature module is a retrieval aid and this interface update does not constitute a new external validation.""")
+The explanation is **model-based and descriptive, not causal**. Optimized conditions are hypotheses for experimental prioritization, not guarantees of MOF formation. The predictive core remains the validated frozen v8.0 ensemble: two retraining candidates were rejected because their gain in crystalline recall reduced three-class specificity. Verified evidence is therefore displayed separately rather than being converted into an uncalibrated probability.""")
