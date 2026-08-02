@@ -1,0 +1,89 @@
+Legante,Ligand_SMILES,Ligand_InChIKey,Structure_Status,Structure_Source
+(NO2)2BPz,O=[N+]([O-])c1[nH]ncc1-c1cn[nH]c1[N+](=O)[O-],FVLPTQWPVHEIHM-UHFFFAOYSA-N,curated_name_to_structure,Curated project registry
+"1,2,4,5-Benzenetetracarboxylic acid",O=C(O)c1cc(C(=O)O)c(C(=O)O)cc1C(=O)O,CYIDZMCFTVVTJO-UHFFFAOYSA-N,resolved,PubChem PUG REST
+"1,2,4-Triazole",c1nc[nH]n1,NSPMIYGKQJPBQR-UHFFFAOYSA-N,resolved,PubChem PUG REST
+"1,3,5-BTB (0.2) / 2,6-NDC (0.2)",,,pubchem_http_404,unresolved
+"1,3,5-tris(4-carboxyphenyl)benzene (BTB)",O=C(O)c1ccc(-c2cc(-c3ccc(C(=O)O)cc3)cc(-c3ccc(C(=O)O)cc3)c2)cc1,SATWKVZGMWCXOJ-UHFFFAOYSA-N,resolved,PubChem PUG REST
+"1,3,6,8-tetrakis(p-benzoic acid)pyrene",,,pubchem_http_404,unresolved
+"1,3,6,8-tetrakis(p-benzoic acid)pyrene (H4TBAPy)",,,pubchem_http_404,unresolved
+"1,4-Benzenedicarboxylic acid (H2BDC)",O=C(O)c1ccc(C(=O)O)cc1,KKEYFWRCBNTPAC-UHFFFAOYSA-N,resolved,PubChem PUG REST
+"1,4-Di(1H-pyrazol-4-yl)benzene",c1cc(-c2cn[nH]c2)ccc1-c1cn[nH]c1,RUGLQPNWHSDVER-UHFFFAOYSA-N,resolved,PubChem PUG REST
+"1,4-Di(1H-pyrazol-4-yl)benzene BDP",,,pubchem_http_404,unresolved
+"1H-pyrazole-3,5-dicarboxylic acid",O=C(O)c1cc(C(=O)O)[nH]n1,YDMVPJZBYSWOOP-UHFFFAOYSA-N,resolved,PubChem PUG REST
+"2'-Amino-[1,1':4',1''-terphenyl]-4,4''-dicarboxylic acid",Nc1cc(-c2ccc(C(=O)O)cc2)ccc1-c1ccc(C(=O)O)cc1,IONBHNFWEFNUEE-UHFFFAOYSA-N,resolved,PubChem PUG REST
+"2,5-Dihydroxyterephthalic acid",O=C(O)c1cc(O)c(C(=O)O)cc1O,OYFRNYNHAZOYNF-UHFFFAOYSA-N,resolved,PubChem PUG REST
+"2,5-Dihydroxyterephthalic acid (H4DOBDC)",O=C(O)c1cc(O)c(C(=O)O)cc1O,OYFRNYNHAZOYNF-UHFFFAOYSA-N,resolved,PubChem PUG REST
+"2,5-Dimethylterephthalic acid",Cc1cc(C(=O)O)c(C)cc1C(=O)O,FKUJGZJNDUGCFU-UHFFFAOYSA-N,resolved,PubChem PUG REST
+"2,5-Dinitroterephthalic acid",O=C(O)c1cc([N+](=O)[O-])c(C(=O)O)cc1[N+](=O)[O-],MUFZXBPNVPXWAV-UHFFFAOYSA-N,resolved,PubChem PUG REST
+"2,5-Thiophenedicarboxylic acid",O=C(O)c1ccc(C(=O)O)s1,YCGAZNXXGKTASZ-UHFFFAOYSA-N,resolved,PubChem PUG REST
+"2,6-NDC (0.5) / H3BTC (0.5)",,,pubchem_http_404,unresolved
+"2,6-NDC (1.0) / DABCO (0.5)",,,pubchem_http_404,unresolved
+"2,6-Naphthalenedicarboxylic acid",O=C(O)c1ccc2cc(C(=O)O)ccc2c1,RXOHFPCZGPKIRD-UHFFFAOYSA-N,resolved,PubChem PUG REST
+"2,6-Naphthalenedicarboxylic acid (2,6-NDC)",O=C(O)c1ccc2cc(C(=O)O)ccc2c1,RXOHFPCZGPKIRD-UHFFFAOYSA-N,resolved,PubChem PUG REST
+"2-Amino-[1,1'-biphenyl]-4,4'-dicarboxylic acid",Nc1cc(C(=O)O)ccc1-c1ccc(C(=O)O)cc1,FYEKGZUXGKAJJQ-UHFFFAOYSA-N,resolved,PubChem PUG REST
+2-Bromoterephthalic acid,O=C(O)c1ccc(C(=O)O)c(Br)c1,QPBGNSFASPVGTP-UHFFFAOYSA-N,resolved,PubChem PUG REST
+2-Ethylimidazole,CCc1ncc[nH]1,PQAMFDRRWURCFQ-UHFFFAOYSA-N,resolved,PubChem PUG REST
+2-Fluoroterephthalic acid,O=C(O)c1ccc(C(=O)O)c(F)c1,YUWKPDBHJFNMAD-UHFFFAOYSA-N,resolved,PubChem PUG REST
+2-Methylimidazole,Cc1ncc[nH]1,LXBGSDVWAMZHDD-UHFFFAOYSA-N,resolved,PubChem PUG REST
+2-Nitroimidazole,O=[N+]([O-])c1ncc[nH]1,YZEUHQHUFTYLPH-UHFFFAOYSA-N,resolved,PubChem PUG REST
+2-Nitroterephthalic acid,O=C(O)c1ccc(C(=O)O)c([N+](=O)[O-])c1,QUMITRDILMWWBC-UHFFFAOYSA-N,resolved,PubChem PUG REST
+2-Sulfoterephthalic acid monosodium salt,O=C(O)c1ccc(C(=O)O)c(S(=O)(=O)[O-])c1.[Na+],JARIJYUQOKFVAJ-UHFFFAOYSA-M,resolved,PubChem PUG REST
+"3,3',5,5'-Azobenzenetetracarboxylic acid (H4ABTC)",,,pubchem_http_404,unresolved
+"3,3',5,5'-Biphenyltetracarboxylic acid",O=C(O)c1cc(C(=O)O)cc(-c2cc(C(=O)O)cc(C(=O)O)c2)c1,QURGMSIQFRADOZ-UHFFFAOYSA-N,resolved,PubChem PUG REST
+"3,3'-Dimethyl-[1,1'-biphenyl]-4,4'-dicarboxylic acid",Cc1cc(-c2ccc(C(=O)O)c(C)c2)ccc1C(=O)O,KWJNTOJAUQZMJO-UHFFFAOYSA-N,resolved,PubChem PUG REST
+"3,3'-diamino-4,4'-bipyrazole",Nc1[nH]ncc1-c1cn[nH]c1N,PHTOIJSCSJAMNE-UHFFFAOYSA-N,curated_name_to_structure,Curated project registry
+"3,3'-dimethyl-4,4'-bipyrazole",Cc1[nH]ncc1-c1cn[nH]c1C,ZVNSWSVGKRBZEV-UHFFFAOYSA-N,curated_name_to_structure,Curated project registry
+"3,3'-dinitro-4,4'-bipyrazole",O=[N+]([O-])c1[nH]ncc1-c1cn[nH]c1[N+](=O)[O-],FVLPTQWPVHEIHM-UHFFFAOYSA-N,resolved,PubChem PUG REST
+"3,5-DiMePz-4-COOH",Cc1n[nH]c(C)c1C(=O)O,IOOWDXMXZBYKLR-UHFFFAOYSA-N,curated_name_to_structure,Curated project registry
+"3,5-diamino-4,4'-bipyrazole",Nc1n[nH]c(N)c1-c1cn[nH]c1,DLWHCOVNOOTWOY-UHFFFAOYSA-N,curated_name_to_structure,Curated project registry
+"3-(3,5-DiMePz4-yl)pentane-2,4-dione",,,pubchem_http_404,unresolved
+3-MePz-4-COOH,Cc1[nH]ncc1C(=O)O,HLYYXPDTFLUERX-UHFFFAOYSA-N,curated_name_to_structure,Curated project registry
+"3-amino-4,4'-bipyrazole",Nc1[nH]ncc1-c1cn[nH]c1,BNWJEGGLNCCFLN-UHFFFAOYSA-N,curated_name_to_structure,Curated project registry
+"3-nitro-4,4'-bipyrazole",O=[N+]([O-])c1[nH]ncc1-c1cn[nH]c1,RTOLQGUSKACYLE-UHFFFAOYSA-N,resolved,PubChem PUG REST
+"4,4',4''-Triaminotriphenylamine",Nc1ccc(N(c2ccc(N)cc2)c2ccc(N)cc2)cc1,SNLFYGIUTYKKOE-UHFFFAOYSA-N,resolved,PubChem PUG REST
+"4,4'-(naphthalene-2,6-diyl)dibenzonic acid",,,pubchem_http_404,unresolved
+"4,4'-Biphenyldicarboxylic acid",O=C(O)c1ccc(-c2ccc(C(=O)O)cc2)cc1,NEQFBGHQPUXOFH-UHFFFAOYSA-N,resolved,PubChem PUG REST
+"4,4'-Biphenyldicarboxylic acid (BPDC)",O=C(O)c1ccc(-c2ccc(C(=O)O)cc2)cc1,NEQFBGHQPUXOFH-UHFFFAOYSA-N,resolved,PubChem PUG REST
+"4,4'-Biphenyldicarboxylic acid (H2BPDC)",O=C(O)c1ccc(-c2ccc(C(=O)O)cc2)cc1,NEQFBGHQPUXOFH-UHFFFAOYSA-N,resolved,PubChem PUG REST
+"4,4'-Bipyridine",c1cc(-c2ccncc2)ccn1,MWVTWFVJZLCBMC-UHFFFAOYSA-N,resolved,PubChem PUG REST
+"4,4'-Bipyridine (0.5) / H2BDC (0.5)",c1cc(-c2ccncc2)ccn1,MWVTWFVJZLCBMC-UHFFFAOYSA-N,resolved,PubChem PUG REST
+"4,5-Dichloroimidazole",Clc1nc[nH]c1Cl,QAJJXHRQPLATMK-UHFFFAOYSA-N,resolved,PubChem PUG REST
+"4-Amino-4H-1,2,4-triazole",Nn1cnnc1,FMCUPJKTGNBGEC-UHFFFAOYSA-N,resolved,PubChem PUG REST
+4-Methyl-5-imidazolecarboxaldehyde,Cc1[nH]cnc1C=O,KMWCSNCNHSEXIF-UHFFFAOYSA-N,resolved,PubChem PUG REST
+"5-(2,4,6-trioxohexahydro-1,3,5-triazin-1-yl)isophthalic acid",,,pubchem_http_404,unresolved
+5-Aminoisophthalic acid,Nc1cc(C(=O)O)cc(C(=O)O)c1,KBZFDRWPMZESDI-UHFFFAOYSA-N,resolved,PubChem PUG REST
+5-MePz-4-COOH,Cc1n[nH]cc1C(=O)O,HLYYXPDTFLUERX-UHFFFAOYSA-N,curated_name_to_structure,Curated project registry
+5-Methoxyisophthalic acid,COc1cc(C(=O)O)cc(C(=O)O)c1,POSMIIJADZKUPL-UHFFFAOYSA-N,resolved,PubChem PUG REST
+5-Nitroisophthalic acid,O=C(O)c1cc(C(=O)O)cc([N+](=O)[O-])c1,NBDAHKQJXVLAID-UHFFFAOYSA-N,resolved,PubChem PUG REST
+"Adenine (0.4) / 4,4'-BPDC (0.8)",Nc1ncnc2nc[nH]c12,GFFGJBXGBJISGV-UHFFFAOYSA-N,resolved,PubChem PUG REST
+B5,,,pubchem_http_404,unresolved
+BHB-based tetracarboxylate,,,pubchem_http_404,unresolved
+Benzimidazole,c1ccc2[nH]cnc2c1,HYZJCKYKOHLVJF-UHFFFAOYSA-N,resolved,PubChem PUG REST
+Et4BPz,,,pubchem_http_404,unresolved
+FErrocenylPz,,,pubchem_http_404,unresolved
+Fumaric acid,O=C(O)C=CC(=O)O,VZCYOOQTPOCHFL-OWOJBTEDSA-N,resolved,PubChem PUG REST
+H2BPZNH2,Nc1[nH]ncc1-c1cn[nH]c1,BNWJEGGLNCCFLN-UHFFFAOYSA-N,curated_name_to_structure,Curated project registry
+H2Me2BDP,,,pubchem_http_404,unresolved
+H4TBAPy derivative,,,pubchem_http_404,unresolved
+Imidazole (3.0) / Benzimidazole (1.0),c1c[nH]cn1,RAXXELZNTBOGNW-UHFFFAOYSA-N,resolved,PubChem PUG REST
+Imidazole-2-carboxaldehyde,O=Cc1ncc[nH]1,XYHKNCXZYYTLRG-UHFFFAOYSA-N,resolved,PubChem PUG REST
+Isophthalic acid,O=C(O)c1cccc(C(=O)O)c1,QQVIHTHCMHWDBS-UHFFFAOYSA-N,resolved,PubChem PUG REST
+NO2BPz,O=[N+]([O-])c1[nH]ncc1-c1cn[nH]c1,RTOLQGUSKACYLE-UHFFFAOYSA-N,curated_name_to_structure,Curated project registry
+"Pyrazine-2,3-dicarboxylic acid",O=C(O)c1nccnc1C(=O)O,ZUCRGHABDDWQPY-UHFFFAOYSA-N,resolved,PubChem PUG REST
+"Pyrazole-3,5-dicarboxylic acid",O=C(O)c1cc(C(=O)O)[nH]n1,YDMVPJZBYSWOOP-UHFFFAOYSA-N,resolved,PubChem PUG REST
+"PzDC / 1H-3,5-dicarboxylic",,,pubchem_http_404,unresolved
+Ru1,,,pubchem_http_404,unresolved
+"Ru1 scambio anionico FW=868,73",,,pubchem_http_404,unresolved
+"Ru1,2",,,pubchem_http_404,unresolved
+"Ru1,3",,,pubchem_http_404,unresolved
+"Ru1,3 802,63",,,pubchem_http_404,unresolved
+"Ru1,3 scambio anionico FW=868,73",,,pubchem_http_404,unresolved
+"Ru1,3 scambio anionico2 FW=868,73",,,pubchem_http_404,unresolved
+TCPP,,,pubchem_http_404,unresolved
+TCPP (Tetrakis(4-carboxyphenyl)porphyrin),,,pubchem_http_404,unresolved
+TDPAT,,,pubchem_http_404,unresolved
+Terphenyldicarboxylic acid (TPDC),O=C(O)c1cccc(-c2ccccc2-c2ccccc2)c1C(=O)O,DAWHTISAONTGQE-UHFFFAOYSA-N,resolved,PubChem PUG REST
+TpMe2Tl,,,pubchem_http_404,unresolved
+curc(III)_KC,,,pubchem_http_404,unresolved
+curc-ind,,,pubchem_http_404,unresolved
+"trans-Cyclohexane-1,4-dicarboxylic acid",O=C(O)C1CCC(C(=O)O)CC1,PXGZQGDTEZPERC-UHFFFAOYSA-N,resolved,PubChem PUG REST

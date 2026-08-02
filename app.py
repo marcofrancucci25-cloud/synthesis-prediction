@@ -40,14 +40,11 @@ def optimize_joint(*args, **kwargs):
 from src.resolver import resolve_ligand, confirmed_entry
 from src.literature import search_literature
 
-# Temporary Tavily deployment key. Replace this value when rotating the key.
-TAVILY_DEPLOYMENT_KEY = "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"
-
-APP_VERSION = "10.4.1"
+APP_VERSION = "10.5.0"
 
 st.set_page_config(page_title="MOF Synthesis Assistant", page_icon="🧪", layout="wide")
-st.title("🧪 MOF Synthesis Assistant v10.4.1")
-st.caption("Version 10.4.1 · Prediction validity gate for extreme and inconsistent conditions")
+st.title("🧪 MOF Synthesis Assistant v10.5.0")
+st.caption("Version 10.5.0 · Audited labels, structural research pipeline and grouped leakage controls")
 st.caption("Prediction evaluates the exact entered conditions. Optimization separately combines three-class risk, successful precedents, feasibility and applicability while keeping only ligand and metal fixed.")
 page = st.sidebar.radio("Module", ["Predict synthesis", "Literature search", "Model validation", "About"])
 
@@ -484,7 +481,6 @@ elif page=="Literature search":
                         years_back=years_back,
                         max_results=max_results,
                         mof_focus=mof_focus,
-                        api_key=TAVILY_DEPLOYMENT_KEY,
                     )
                     st.session_state["literature_results"] = results
                     st.session_state["literature_query"] = query

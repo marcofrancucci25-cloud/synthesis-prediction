@@ -1,0 +1,22 @@
+{
+  "records": 1078,
+  "classes": {
+    "0": 217,
+    "1": 306,
+    "2": 555
+  },
+  "unique_ligands": 88,
+  "resolved_ligands": 58,
+  "records_with_structure": 984,
+  "label_contradictions": 1,
+  "condition_outcome_conflicts": 346,
+  "review_records": 347,
+  "label_policy": {
+    "0": "Failed / no useful coordination product",
+    "1": "Amorphous, uncertain or insufficiently verified product",
+    "2": "Crystalline MOF supported by diffraction evidence"
+  },
+  "limitations": [
+    "PXRD_verified and Source_DOI are absent from the legacy predictor dataset; class 2 therefore remains a legacy label pending source-level recuration."
+  ]
+}

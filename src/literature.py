@@ -9,6 +9,7 @@ from __future__ import annotations
 import re
 from datetime import date, timedelta
 from typing import Any
+import os
 from urllib.parse import urlparse
 
 TRUSTED_DOMAINS = [
@@ -32,9 +33,6 @@ TRUSTED_DOMAINS = [
     "cell.com",
 ]
 
-# Temporary deployment key. Replace this single value when rotating the Tavily key.
-TAVILY_API_KEY = "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"
-
 DOI_RE = re.compile(r"\b10\.\d{4,9}/[-._;()/:A-Z0-9]+\b", re.I)
 
 
@@ -49,10 +47,16 @@ def _doi(text: str) -> str | None:
 
 
 def _api_key(explicit_key: str | None = None) -> str:
-    """Return the app-bundled Tavily key; no user input or Streamlit secret is required."""
-    key = (explicit_key or TAVILY_API_KEY).strip()
+    """Read Tavily credentials at runtime; credentials are never bundled in source."""
+    key = str(explicit_key or os.getenv("TAVILY_API_KEY", "")).strip()
     if not key:
-        raise RuntimeError("The bundled Tavily deployment key is empty.")
+        try:
+            import streamlit as st
+            key = str(st.secrets.get("TAVILY_API_KEY", "")).strip()
+        except Exception:
+            key = ""
+    if not key:
+        raise RuntimeError("TAVILY_API_KEY is not configured in Streamlit Secrets or the environment.")
     return key
 
 

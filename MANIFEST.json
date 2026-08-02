@@ -1,6 +1,6 @@
 {
-  "version": "10.4.1",
-  "file_count": 62,
+  "version": "10.5.0",
+  "file_count": 76,
   "files": [
     {
       "path": ".gitignore",
@@ -24,18 +24,18 @@
     },
     {
       "path": "README.md",
-      "size": 5224,
-      "sha256": "7020cea9a2d3284c3437f87edbf341e95c1d55105a5aadc43f1c50226c54047c"
+      "size": 5757,
+      "sha256": "dd99a28827fab1fe599ab2582f05fd6c9dfce4762df2dc5223515633156fa4b4"
     },
     {
       "path": "VERSION",
       "size": 7,
-      "sha256": "4eed702adafe01d9c3f0b742fbeecc86da47b95a4c1ed9fa4b0dbfba9e449302"
+      "sha256": "1bf6cc4e5791adfcc5cd5b7690359ac5e7ac979df777753665315a0bda8bf080"
     },
     {
       "path": "app.py",
-      "size": 32727,
-      "sha256": "ce9d0d0fb2cbdac4cc3e15947bc7cee872a3a5574808797c1c9038aab839c413"
+      "size": 32518,
+      "sha256": "bdf249c0fbaa1cb7740bd5cf0a6d9a58123399129f2629f937f5a68857175dee"
     },
     {
       "path": "data/Dataset_Multivariate_Schema_v10.csv",
@@ -51,6 +51,16 @@
       "path": "data/knowledge_database.csv",
       "size": 442130,
       "sha256": "8d6046c790b098dce7a9a7b39dffeaf84143f1da75494ee6240a6efe3b0a2aec"
+    },
+    {
+      "path": "data/knowledge_database_audited_v10_5.csv",
+      "size": 579349,
+      "sha256": "09a1e68acbe6a9fcf139934059a3dcb818d25f8458be4ae6eb353a3c54f4ffdf"
+    },
+    {
+      "path": "data/ligand_structure_registry_v10_5.csv",
+      "size": 8444,
+      "sha256": "890031bbd63bacd57dfa50d187e917487e389fc7516f1b1c87f311edb46c40ee"
     },
     {
       "path": "data/successful_synthesis_import_template_v10_3.csv",
@@ -81,6 +91,11 @@
       "path": "models/MOF_Hybrid_ChemAware_v8_0.joblib",
       "size": 1944452,
       "sha256": "d53d5ced142194d80d0cbec6e6a6d68b53682eda79cf59539118f0d38603ce2b"
+    },
+    {
+      "path": "models/MOF_Structural_Predictor_v10_5.joblib",
+      "size": 2612759,
+      "sha256": "f6602d30d03d20ebddff346f83ca6d317bbeaff150f1fc578a43774e01a98c01"
     },
     {
       "path": "models/Positive_Condition_Recommendation_v10_4.joblib",
@@ -138,6 +153,11 @@
       "sha256": "c2b2307461f82f96a16966cbf1626b29ab55d7dec5fdf791999455778246f9f8"
     },
     {
+      "path": "reports/LABEL_POLICY_v10_5.md",
+      "size": 1445,
+      "sha256": "a124814cb11964891bf62909d88fcdd811e3be52b9499c86b889979191e02382"
+    },
+    {
       "path": "reports/LIGAND_RESOLVER_UPDATE_v9_5_2.md",
       "size": 349,
       "sha256": "c81db73fb601715db90c5a87d1caafa29beed6585cd85742edba9530f5fef59d"
@@ -173,6 +193,11 @@
       "sha256": "c911981157b6239bdeae18576edfc8792056d7ddfc2576f391d84074f39301c1"
     },
     {
+      "path": "reports/SCIENTIFIC_UPDATE_v10_5.md",
+      "size": 1057,
+      "sha256": "b2f5446aef09aef7695cf112d4bb80ab7a4fc9859947a1da6e01b5fa5ff3cfeb"
+    },
+    {
       "path": "reports/SCIENTIFIC_UPDATE_v8_0.md",
       "size": 1535,
       "sha256": "481d44bfd7ba642fea6f33a6b4c4bc96b7d6508c7eefa0971ca5096d9725e6b5"
@@ -186,6 +211,11 @@
       "path": "reports/VALIDITY_GATE_v10_4_1.md",
       "size": 856,
       "sha256": "9fe0806aa4c5b7f4d42ee32382a8b27ed6cbc13c505d3281a0fe2e23b55539d4"
+    },
+    {
+      "path": "reports/dataset_audit_v10_5.json",
+      "size": 642,
+      "sha256": "55c0713b63f9e16f8c9c03d81bb247ada6315ce486188efa48cc8bf9a9197be1"
     },
     {
       "path": "reports/external_class_metrics_v8_0.csv",
@@ -238,6 +268,16 @@
       "sha256": "db8c8680e16d5b545ad0f6e38765283ab4a614eb03f46ca9e5cd036f100caa10"
     },
     {
+      "path": "reports/structural_grouped_cv_v10_5.csv",
+      "size": 799,
+      "sha256": "7ba7136b82b44ad534115ada0cde5f9b3ab0a4be08c6f91a950999323fcab1db"
+    },
+    {
+      "path": "reports/structural_validation_summary_v10_5.json",
+      "size": 845,
+      "sha256": "5833fabc0cc4d634ae34ba6de13005fe5f1442b09994a6a60c640d0becfa8905"
+    },
+    {
       "path": "requirements.txt",
       "size": 139,
       "sha256": "1926c9a16a555375938667bb35626586371099bae805ffd2756b6120a15b78ac"
@@ -259,8 +299,8 @@
     },
     {
       "path": "src/literature.py",
-      "size": 6227,
-      "sha256": "c32609e3e68043f542feafed1744a37e9de6f6cfb38c39fdea54501fce468526"
+      "size": 6298,
+      "sha256": "6d4d436fcac8088d49105e0a4825c421906a706e2e679351ffb8310d9ef8a309"
     },
     {
       "path": "src/optimizer.py",
@@ -276,6 +316,11 @@
       "path": "src/resolver.py",
       "size": 32901,
       "sha256": "230fb660922dd76aaa2e65794d0c2b1e2d5d71fa075cec326efceb338e4b209e"
+    },
+    {
+      "path": "src/structural.py",
+      "size": 2772,
+      "sha256": "ee46810fedf7ccc8636f3de1e06b4ff3318fb52271377ba1762034a9ca132367"
     },
     {
       "path": "tests/smoke_test.py",
@@ -308,9 +353,29 @@
       "sha256": "e42cb981339bff208118889804ae6e1c1722168c944bafc681563b337c774762"
     },
     {
+      "path": "tests/test_structural_pipeline.py",
+      "size": 340,
+      "sha256": "2a819e89067c0a880c07a1ec595f70e10a3e1f6374e9e54de173e32f82c7e6cb"
+    },
+    {
+      "path": "tools/audit_dataset_v10_5.py",
+      "size": 2393,
+      "sha256": "58d1e683ba35d568326f3246386d47e2721de3d36d00e4854dc56c3238a47256"
+    },
+    {
+      "path": "tools/curate_ligand_structures.py",
+      "size": 2843,
+      "sha256": "edbabef27d0bdaab9e54eeb0f15db25635a0896983e59a37e7bb9674f1d56bdc"
+    },
+    {
       "path": "tools/import_successful_syntheses.py",
       "size": 1829,
       "sha256": "5a44ed70ade553345ec92710fd53620b88dc1904510a3f40ca8fdf18e5980b46"
+    },
+    {
+      "path": "tools/train_structural_predictor_v10_5.py",
+      "size": 3748,
+      "sha256": "daba996148863552d26110516e219f8cd7da8bdb4545e0e6e2a6e3a9d26efd3c"
     }
   ]
 }

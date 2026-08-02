@@ -55,9 +55,7 @@ TAVILY_API_KEY = "tvly-your-key"
 The application does not store keys entered in the temporary local password field. Search results remain retrieval outputs and should be checked against the original publisher record.
 
 
-## Tavily configuration in v9.4
-
-The literature-search interface no longer displays an API-key field. The temporary deployment key is defined once in `src/literature.py` as `TAVILY_API_KEY`; replace that single value when rotating the key.
+The key is never stored in source code. Configure `TAVILY_API_KEY` only through Streamlit Secrets or an environment variable.
 
 ## Ligand consensus resolver (v9.6.0)
 Ligand names are resolved using curated linker entries, OPSIN, PubChem and NCI Cactus. The app compares independently obtained structures and only accepts an identity automatically when the evidence is sufficiently consistent. Ambiguous results are displayed as candidate structures for explicit user confirmation.
@@ -89,3 +87,11 @@ The included positive library contains 694 deduplicated crystalline-condition re
 ## Prediction validity gate (v10.4.1)
 
 The exact-condition predictor now reports whether numerical inputs lie within the experimentally supported range. Extreme temperature, reaction time, stoichiometry, reagent amount, volume, concentration, or mutually inconsistent ratio/amount inputs trigger an explicit reliability warning. The underlying probability is retained for transparency but is not presented as a validated success estimate outside the supported range. The applicability-domain score now combines chemical identity support with numerical-range support.
+
+## Scientific audit and structural pipeline (v10.5.0)
+
+- Added a provenance-aware ligand structure registry and Morgan/ECFP + RDKit descriptor pipeline.
+- Added deterministic label-quality, duplicate-condition and outcome-conflict auditing.
+- Added grouped validation by unseen ligand and unseen Bemis-Murcko scaffold.
+- The structural model is retained as an experimental artifact and is **not activated in the app** because scaffold-held-out performance did not pass the scientific promotion gate.
+- The externally validated v8 predictor remains the production predictor until source-level labels, DOI provenance and PXRD evidence are curated.

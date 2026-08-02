@@ -1,0 +1,32 @@
+{
+  "training_records": 661,
+  "training_ligands": 58,
+  "training_scaffolds": 20,
+  "metrics": {
+    "('macro_f1', 'mean')": {
+      "unseen_ligand": 0.4589,
+      "unseen_scaffold": 0.3264
+    },
+    "('macro_f1', 'std')": {
+      "unseen_ligand": 0.1283,
+      "unseen_scaffold": 0.0641
+    },
+    "('balanced_accuracy', 'mean')": {
+      "unseen_ligand": 0.4746,
+      "unseen_scaffold": 0.3507
+    },
+    "('balanced_accuracy', 'std')": {
+      "unseen_ligand": 0.1284,
+      "unseen_scaffold": 0.0349
+    },
+    "('mcc', 'mean')": {
+      "unseen_ligand": 0.3402,
+      "unseen_scaffold": 0.0643
+    },
+    "('mcc', 'std')": {
+      "unseen_ligand": 0.1782,
+      "unseen_scaffold": 0.1297
+    }
+  },
+  "warning": "This is grouped cross-validation on the structure-resolved legacy subset, not a replacement for the frozen external test."
+}
