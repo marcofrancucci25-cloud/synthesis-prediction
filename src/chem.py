@@ -15,6 +15,43 @@ COMMON_LIGAND_ALIASES={
 FAMILIES=['Bipyrazole/pyrazole','Carboxylate','Imidazolate/azolate','Pyridyl/N-donor','Phosphonate','Sulfonate','Curcumin/β-diketonate','Mixed donor','Other/unknown']
 COUNTERIONS=['nitrate','acetate','chloride','bromide','iodide','sulfate','perchlorate','triflate','tetrafluoroborate','hexafluorophosphate','carbonate','hydroxide','oxide','alkoxide','acetylacetonate','other']
 
+HARD_ACIDS={
+ 'Li','Be','Mg','Ca','Sr','Ba','Al','Sc','Y','La','Ce','Pr','Nd','Sm','Eu',
+ 'Gd','Tb','Dy','Ho','Er','Tm','Yb','Lu','Ga','In','Zr','Hf','Th','U',
+}
+SOFT_ACIDS={'Ag','Au','Cd','Hg','Pd','Pt'}
+
+def hsab_acid_class(metal, oxidation_state=2):
+    """Return an indicative HSAB class for a metal ion.
+
+    HSAB character belongs to the ion, not only to the element.  The selected
+    oxidation state is therefore used for common variable-valence metals.
+    """
+    symbol=str(metal or '').strip()
+    try:
+        oxidation=int(oxidation_state)
+    except (TypeError,ValueError):
+        oxidation=None
+    if symbol in HARD_ACIDS:
+        return 'Hard acid'
+    if symbol in SOFT_ACIDS:
+        return 'Soft acid'
+    if symbol=='Cu':
+        return 'Soft acid' if oxidation==1 else ('Borderline acid' if oxidation else 'Oxidation-state dependent')
+    if symbol in {'Fe','Co','Cr','Mn'}:
+        return 'Hard acid' if oxidation is not None and oxidation>=3 else ('Borderline acid' if oxidation else 'Oxidation-state dependent')
+    if symbol in {'Ti','V','Nb','Ta'}:
+        return 'Hard acid' if oxidation is not None and oxidation>=4 else ('Borderline acid' if oxidation else 'Oxidation-state dependent')
+    if symbol in {'Mo','W'}:
+        return 'Hard acid' if oxidation is not None and oxidation>=5 else ('Borderline acid' if oxidation else 'Oxidation-state dependent')
+    if symbol=='Re':
+        return 'Hard acid' if oxidation is not None and oxidation>=6 else ('Borderline acid' if oxidation else 'Oxidation-state dependent')
+    if symbol=='Sn':
+        return 'Hard acid' if oxidation is not None and oxidation>=4 else ('Borderline acid' if oxidation else 'Oxidation-state dependent')
+    if symbol=='Pb':
+        return 'Hard acid' if oxidation is not None and oxidation>=4 else 'Borderline acid'
+    return 'Borderline acid'
+
 # The v8 training data use an older Italian family vocabulary.  The public UI
 # intentionally exposes clearer English labels, so values must be translated
 # before they enter either the frozen model or a retrained successor.
