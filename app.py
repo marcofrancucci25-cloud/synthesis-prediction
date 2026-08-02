@@ -46,7 +46,7 @@ st.set_page_config(page_title="MOF Synthesis Assistant", page_icon="🧪", layou
 st.title("🧪 MOF Synthesis Assistant v10.6.0")
 st.caption("Version 10.6.0 · Integrated laboratory evidence with frozen-model validity preserved")
 st.caption("Prediction evaluates the exact entered conditions. Optimization separately combines three-class risk, successful precedents, feasibility and applicability while keeping only ligand and metal fixed.")
-page = st.sidebar.radio("Module", ["Predict synthesis", "Literature search", "Model validation", "About"])
+page = st.sidebar.radio("Module", ["Predict synthesis", "Literature search", "About"])
 
 
 def _format_formula(formula):
@@ -507,11 +507,6 @@ elif page=="Literature search":
             "mof_literature_results.csv",
             "text/csv",
         )
-elif page=="Model validation":
-    root=Path(__file__).parent; metrics=json.loads((root/"reports/external_metrics_v8_0.json").read_text())
-    st.subheader("Ligand-group external test of the current predictive core")
-    st.info("v10.6.0 keeps the balanced v8 predictive core frozen. Newly integrated laboratory records support precedent retrieval and positive-template optimization, but do not alter the reported v8 external-test metrics.")
-    st.json(metrics); st.dataframe(pd.read_csv(root/"reports/external_class_metrics_v8_0.csv"),use_container_width=True); st.dataframe(pd.read_csv(root/"reports/external_confusion_matrix_v8_0.csv",index_col=0),use_container_width=True)
 else:
     st.markdown("""### Scope and scientific limitations
 Version 10.6.0 adds normalized laboratory evidence while preserving the separation between the frozen Prediction Engine and Hybrid Optimization Engine. Seventeen eligible laboratory records are available for evidence retrieval; ten unique crystalline condition templates supplement the optimizer. The in-situ ibuprofen experiments and the ambiguous DDS1 record remain outside the principal evidence layer.
