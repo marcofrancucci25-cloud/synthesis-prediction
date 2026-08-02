@@ -5,8 +5,13 @@ from .optimizer import joint_optimize
 ROOT=Path(__file__).resolve().parents[1]
 ART=joblib.load(ROOT/'models/MOF_ChemAware_Ensemble_v8_0.joblib')
 SCHEMA=json.loads((ROOT/'models/feature_schema_v8_0.json').read_text())
-DB=pd.read_csv(ROOT/'data/knowledge_database.csv')
-POSITIVE_DB=pd.read_csv(ROOT/'data/successful_synthesis_library_v10_4.csv')
+TRAINING_DB=pd.read_csv(ROOT/'data/knowledge_database.csv')
+EVIDENCE_DB_PATH=ROOT/'data/knowledge_database_integrated_v10_6.csv'
+EVIDENCE_DB=pd.read_csv(EVIDENCE_DB_PATH) if EVIDENCE_DB_PATH.exists() else TRAINING_DB.copy()
+# Backwards-compatible public name: predictor/domain calculations remain tied to
+# the frozen v8 training data. Similar-record retrieval uses EVIDENCE_DB below.
+DB=TRAINING_DB
+POSITIVE_DB=pd.read_csv(ROOT/'data/successful_synthesis_library_v10_6.csv')
 POSITIVE_MODEL_PATH=ROOT/'models/Positive_Condition_Recommendation_v10_4.joblib'
 POSITIVE_MODEL=joblib.load(POSITIVE_MODEL_PATH) if POSITIVE_MODEL_PATH.exists() else None
 FEATURES=ART['features']
@@ -28,7 +33,7 @@ NUMERIC_VALIDITY_COLUMNS = [
 def _training_ranges():
     ranges = {}
     for c in NUMERIC_VALIDITY_COLUMNS:
-        x = pd.to_numeric(DB[c], errors="coerce").dropna()
+        x = pd.to_numeric(TRAINING_DB[c], errors="coerce").dropna()
         if len(x):
             ranges[c] = {
                 "min": float(x.min()), "max": float(x.max()),
@@ -109,9 +114,9 @@ def prediction_validity(values):
 
 def applicability(values):
     ligand=str(values.get('Legante','')).strip().lower(); metal=str(values.get('Metallo','')); salt=str(values.get('Sale_Metallico',''))
-    seen_lig=ligand in set(DB['Legante'].astype(str).str.lower())
-    seen_metal=metal in set(DB['Metallo'].astype(str))
-    seen_salt=salt in set(DB['Sale_Metallico'].astype(str))
+    seen_lig=ligand in set(TRAINING_DB['Legante'].astype(str).str.lower())
+    seen_metal=metal in set(TRAINING_DB['Metallo'].astype(str))
+    seen_salt=salt in set(TRAINING_DB['Sale_Metallico'].astype(str))
     identity_score=0.50*seen_lig+0.30*seen_metal+0.20*seen_salt
     validity=prediction_validity(values)
     # Identity support and numerical support are both required. A high categorical
@@ -123,7 +128,7 @@ def applicability(values):
     return {'score':score,'label':label,'ligand_seen':seen_lig,'metal_seen':seen_metal,'salt_seen':seen_salt,'identity_score':float(identity_score),'validity':validity}
 
 def similar(values,n=15):
-    d=DB.copy(); metal=str(values.get('Metallo','')); fam=str(values.get('Famiglia_Legante',''))
+    d=EVIDENCE_DB.copy(); metal=str(values.get('Metallo','')); fam=str(values.get('Famiglia_Legante',''))
     d['_score']=0
     d.loc[d['Metallo'].astype(str)==metal,'_score']+=3
     d.loc[d['Famiglia_Legante'].astype(str)==fam,'_score']+=2
@@ -187,7 +192,7 @@ def explain_prediction(values):
 
 def optimize_joint(values, objective="Balanced conditions", n_samples=2500, top_n=12, constraints=None):
     return joint_optimize(
-        values, model_artifact=ART, features=FEATURES, db=DB, positive_db=POSITIVE_DB,
+        values, model_artifact=ART, features=FEATURES, db=TRAINING_DB, positive_db=POSITIVE_DB,
         positive_model=POSITIVE_MODEL, objective=objective, n_samples=n_samples, top_n=top_n,
         constraints=constraints or {},
     )

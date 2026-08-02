@@ -1,6 +1,6 @@
 {
-  "version": "10.5.0",
-  "file_count": 76,
+  "version": "10.6.0",
+  "file_count": 86,
   "files": [
     {
       "path": ".gitignore",
@@ -24,18 +24,18 @@
     },
     {
       "path": "README.md",
-      "size": 5757,
-      "sha256": "dd99a28827fab1fe599ab2582f05fd6c9dfce4762df2dc5223515633156fa4b4"
+      "size": 6562,
+      "sha256": "9b72ca32b37694ced022834751492e5e46befb21715c4d1a3a8cbe6f187299fe"
     },
     {
       "path": "VERSION",
       "size": 7,
-      "sha256": "1bf6cc4e5791adfcc5cd5b7690359ac5e7ac979df777753665315a0bda8bf080"
+      "sha256": "3d61dd9c21610b8daa0474613484313db3cf815df0b5fa3413ba09489eeaf6b5"
     },
     {
       "path": "app.py",
-      "size": 32518,
-      "sha256": "bdf249c0fbaa1cb7740bd5cf0a6d9a58123399129f2629f937f5a68857175dee"
+      "size": 32525,
+      "sha256": "bd824fa4d6c1ec5737c2d9350e7f4c0aa78ddc9c35bb93336f1d9adadd7f863d"
     },
     {
       "path": "data/Dataset_Multivariate_Schema_v10.csv",
@@ -58,6 +58,26 @@
       "sha256": "09a1e68acbe6a9fcf139934059a3dcb818d25f8458be4ae6eb353a3c54f4ffdf"
     },
     {
+      "path": "data/knowledge_database_integrated_v10_6.csv",
+      "size": 519889,
+      "sha256": "f87d9f3d7c93df5286ae21b7ef5c2e9a2d2752f75dd3080efc1acfd118394b18"
+    },
+    {
+      "path": "data/laboratory_in_situ_drug_loading_v10_6.csv",
+      "size": 1968,
+      "sha256": "7711adc59f88bee119e360538510e2333a14011e871ccdd4a65b19e9ef4817aa"
+    },
+    {
+      "path": "data/laboratory_records_needing_review_v10_6.csv",
+      "size": 1216,
+      "sha256": "9be039a823f71e461cf21cee4db6e5188d1b034eda783ca76697b6dc4fd43787"
+    },
+    {
+      "path": "data/laboratory_syntheses_normalized_v10_6.csv",
+      "size": 10065,
+      "sha256": "ce093e05ee0e83f71ebfc014c2aa30f06eabe2de8ad6694c5a3977eb281bef31"
+    },
+    {
       "path": "data/ligand_structure_registry_v10_5.csv",
       "size": 8444,
       "sha256": "890031bbd63bacd57dfa50d187e917487e389fc7516f1b1c87f311edb46c40ee"
@@ -73,6 +93,11 @@
       "sha256": "8add6f2db8fccea67fd7954d150e96acc94bc01eae4dc1901ef275b83869aaf3"
     },
     {
+      "path": "data/successful_synthesis_library_metadata_v10_6.json",
+      "size": 423,
+      "sha256": "d17e6d4872fc19413b945383024d8cdd115ef5ef470a72216829dbefdbede2db"
+    },
+    {
       "path": "data/successful_synthesis_library_v10_3.csv",
       "size": 234781,
       "sha256": "223eff88e8aa8c904c7127062c95b86866bf56df6e68f6f7d60a26bd8a2c3358"
@@ -81,6 +106,11 @@
       "path": "data/successful_synthesis_library_v10_4.csv",
       "size": 234781,
       "sha256": "223eff88e8aa8c904c7127062c95b86866bf56df6e68f6f7d60a26bd8a2c3358"
+    },
+    {
+      "path": "data/successful_synthesis_library_v10_6.csv",
+      "size": 235141,
+      "sha256": "391176583856a57da03f96730f1ec0261938eaec7d592f110f70154b10e17a55"
     },
     {
       "path": "models/MOF_ChemAware_Ensemble_v8_0.joblib",
@@ -198,6 +228,11 @@
       "sha256": "b2f5446aef09aef7695cf112d4bb80ab7a4fc9859947a1da6e01b5fa5ff3cfeb"
     },
     {
+      "path": "reports/SCIENTIFIC_UPDATE_v10_6.md",
+      "size": 1385,
+      "sha256": "c585ddbb7698255ee25e186408bbc6a5d382383c2b55a696cb7b2f3da8f70615"
+    },
+    {
       "path": "reports/SCIENTIFIC_UPDATE_v8_0.md",
       "size": 1535,
       "sha256": "481d44bfd7ba642fea6f33a6b4c4bc96b7d6508c7eefa0971ca5096d9725e6b5"
@@ -258,6 +293,11 @@
       "sha256": "6160b5c79711fdd800e206df9503c91dc76fbbf30fedb4fd9f823d851c38e80e"
     },
     {
+      "path": "reports/laboratory_integration_summary_v10_6.json",
+      "size": 593,
+      "sha256": "fc95b8f1ac9c2951e67f4ad86a18c93e225504c59c7edd4e3266b5d8211790ce"
+    },
+    {
       "path": "reports/positive_recommendation_validation_v10_4.csv",
       "size": 28558,
       "sha256": "afa54f6d3e574f85a3e9ab7ef9e22bc75176066efad8633a503632f6288c9f6c"
@@ -294,8 +334,8 @@
     },
     {
       "path": "src/engine.py",
-      "size": 9524,
-      "sha256": "55b7ad7920d7c7b2fe8e74f569ac69e56ad241c85b4c64221f18a36e6fe119a9"
+      "size": 9927,
+      "sha256": "60df26a5ba7ce528ca81dd5c0696ac598a8801712563b7c39e3f5cf1d732e18f"
     },
     {
       "path": "src/literature.py",
@@ -305,7 +345,7 @@
     {
       "path": "src/optimizer.py",
       "size": 30028,
-      "sha256": "d196e427840a3e1dcb8dc5ff7f7b23ca33884e30628de4e23f6fc4c2c595bf0b"
+      "sha256": "2627a31b3cbe8099ca2a1e85b82575c1e93e453c37d9336c0ce0e5fbfa1e898b"
     },
     {
       "path": "src/pubchem.py",
@@ -338,9 +378,14 @@
       "sha256": "a33b16418c5c9b30817adbab2c5ec2dbb045e97da23d634e1d9bec64fe7838ee"
     },
     {
+      "path": "tests/test_lab_integration_v10_6.py",
+      "size": 1520,
+      "sha256": "8e8634c889aa9feeead4a92b095a3d8a53ea0cf922df2e7158b49b97b814a644"
+    },
+    {
       "path": "tests/test_positive_recommendation.py",
-      "size": 1221,
-      "sha256": "cb1ec14db8e74d6451d483ac43a26b0faadfaeb544647a15cce52c32b3f13d27"
+      "size": 1289,
+      "sha256": "7047f4a2044487b4f89be680bc5f95381e9d85770bdd0af6222ea0bd7b1d4473"
     },
     {
       "path": "tests/test_prediction_validity.py",
@@ -371,6 +416,11 @@
       "path": "tools/import_successful_syntheses.py",
       "size": 1829,
       "sha256": "5a44ed70ade553345ec92710fd53620b88dc1904510a3f40ca8fdf18e5980b46"
+    },
+    {
+      "path": "tools/integrate_lab_syntheses_v10_6.py",
+      "size": 9473,
+      "sha256": "863612283b62ce306aaa6cf8572195280f58d53ea4867741f08f3d7c3e976dbf"
     },
     {
       "path": "tools/train_structural_predictor_v10_5.py",

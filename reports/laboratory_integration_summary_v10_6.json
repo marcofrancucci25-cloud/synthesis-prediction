@@ -1,0 +1,18 @@
+{
+  "version": "10.6.0",
+  "source_experiments_unique": 20,
+  "integrated_evidence_records": 17,
+  "integrated_database_total": 1095,
+  "class_distribution_integrated": {
+    "0": 3,
+    "1": 1,
+    "2": 13
+  },
+  "crystalline_source_records": 13,
+  "positive_condition_templates_added": 10,
+  "positive_library_total": 656,
+  "special_drug_loading_records": 2,
+  "records_needing_review": 1,
+  "frozen_predictor_retrained": false,
+  "scientific_boundary": "Laboratory records support evidence retrieval and positive-template optimization; v8 metrics remain tied to the frozen training set."
+}

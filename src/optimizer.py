@@ -519,7 +519,7 @@ def joint_optimize(
         result.loc[(result["Green_penalty"] + result["Speed_penalty"]).idxmin(), "Strategy"] = "Resource-conscious"
 
     metadata = {
-        "optimizer_version": "10.4.0",
+        "optimizer_version": "10.6.0",
         "objective": objective,
         "requested_samples": n_samples,
         "feasible_candidates": int(len(candidates)),

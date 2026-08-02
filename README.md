@@ -95,3 +95,13 @@ The exact-condition predictor now reports whether numerical inputs lie within th
 - Added grouped validation by unseen ligand and unseen Bemis-Murcko scaffold.
 - The structural model is retained as an experimental artifact and is **not activated in the app** because scaffold-held-out performance did not pass the scientific promotion gate.
 - The externally validated v8 predictor remains the production predictor until source-level labels, DOI provenance and PXRD evidence are curated.
+
+## Laboratory evidence integration (v10.6.0)
+
+- Normalized 20 unique DDS laboratory experiments into a flat, provenance-aware schema.
+- Integrated 17 eligible records into `knowledge_database_integrated_v10_6.csv`: 3 failed, 1 amorphous/uncertain and 13 crystalline.
+- Kept DDS1 in review because its notes conflict on whether a solid existed.
+- Kept DDS10,2 and DDS10,3 in a separate in-situ ibuprofen dataset.
+- Consolidated one exact duplicate and aggregated repeated positive condition signatures instead of treating them as independent templates.
+- Added 10 unique PXRD-supported laboratory conditions to the positive precedent library.
+- The original v8 training database and external-test claims remain unchanged. Laboratory evidence is used for precedent retrieval and optimization support only.

@@ -1,0 +1,12 @@
+{
+  "version": "10.6.0",
+  "source_workbook_unique_experiments": 20,
+  "eligible_laboratory_evidence_records": 17,
+  "laboratory_crystalline_records": 13,
+  "laboratory_positive_condition_templates_added": 10,
+  "v10_4_repeated_signature_entries_consolidated": 48,
+  "positive_library_unique_conditions": 656,
+  "integrated_evidence_database_rows": 1095,
+  "frozen_v8_training_rows": 1078,
+  "predictor_retrained": false
+}

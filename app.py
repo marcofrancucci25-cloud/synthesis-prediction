@@ -40,11 +40,11 @@ def optimize_joint(*args, **kwargs):
 from src.resolver import resolve_ligand, confirmed_entry
 from src.literature import search_literature
 
-APP_VERSION = "10.5.0"
+APP_VERSION = "10.6.0"
 
 st.set_page_config(page_title="MOF Synthesis Assistant", page_icon="🧪", layout="wide")
-st.title("🧪 MOF Synthesis Assistant v10.5.0")
-st.caption("Version 10.5.0 · Audited labels, structural research pipeline and grouped leakage controls")
+st.title("🧪 MOF Synthesis Assistant v10.6.0")
+st.caption("Version 10.6.0 · Integrated laboratory evidence with frozen-model validity preserved")
 st.caption("Prediction evaluates the exact entered conditions. Optimization separately combines three-class risk, successful precedents, feasibility and applicability while keeping only ligand and metal fixed.")
 page = st.sidebar.radio("Module", ["Predict synthesis", "Literature search", "Model validation", "About"])
 
@@ -510,10 +510,10 @@ elif page=="Literature search":
 elif page=="Model validation":
     root=Path(__file__).parent; metrics=json.loads((root/"reports/external_metrics_v8_0.json").read_text())
     st.subheader("Ligand-group external test of the current predictive core")
-    st.info("v10.4.1 separates exact-condition prediction from a hybrid optimizer. The balanced predictive core remains frozen; a distinct positive synthesis library guides coherent recommendations without being used as a substitute for negative data.")
+    st.info("v10.6.0 keeps the balanced v8 predictive core frozen. Newly integrated laboratory records support precedent retrieval and positive-template optimization, but do not alter the reported v8 external-test metrics.")
     st.json(metrics); st.dataframe(pd.read_csv(root/"reports/external_class_metrics_v8_0.csv"),use_container_width=True); st.dataframe(pd.read_csv(root/"reports/external_confusion_matrix_v8_0.csv",index_col=0),use_container_width=True)
 else:
     st.markdown("""### Scope and scientific limitations
-Version 10.4.1 adds a validated-range gate and separates the Prediction Engine from the Hybrid Optimization Engine. Prediction evaluates the exact user-entered conditions. Optimization keeps ligand and metal fixed, combines successful synthesis precedents with broad search, and evaluates each proposal using the balanced predictor, applicability and feasibility.
+Version 10.6.0 adds normalized laboratory evidence while preserving the separation between the frozen Prediction Engine and Hybrid Optimization Engine. Seventeen eligible laboratory records are available for evidence retrieval; ten unique crystalline condition templates supplement the optimizer. The in-situ ibuprofen experiments and the ambiguous DDS1 record remain outside the principal evidence layer.
 
 The explanation is **model-based and descriptive, not causal**. Optimized conditions are hypotheses for experimental prioritization, not guarantees of MOF formation. The predictive core remains the frozen v8.0 ensemble; the literature module is a retrieval aid and this interface update does not constitute a new external validation.""")
