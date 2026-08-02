@@ -28,6 +28,9 @@ def test_common_aliases_resolve_to_exact_registry_identities():
     assert canonical_ligand_key("trimesic acid") == "btc"
     assert canonical_ligand_key("H4DOBDC") == "dobdc"
     assert canonical_ligand_key("H2BPZ") == "bpz"
+    assert canonical_ligand_key("TCPP (Tetrakis(4-carboxyphenyl)porphyrin)") == "tcpp"
+    assert canonical_ligand_key("H2PZVDC") == "pzvdc"
+    assert canonical_ligand_key("thiophene vinyl dicarboxylate") == "tvdc"
 
 
 def test_zirconium_bdc_returns_uio66_and_not_mof5():
@@ -67,6 +70,22 @@ def test_oxidation_state_mismatch_is_exposed_not_hidden():
 def test_unknown_pair_has_no_claim_and_no_fallback_guess():
     assert known_mof_matches(query("unregistered ligand 123", "Zn", 2)).empty
     assert known_mof_matches(query("H3BTC", "Zr", 4)).empty
+
+
+def test_aluminium_tcpp_returns_verified_al_pmof_reference():
+    result = known_mof_matches(query("TCPP", "Al", 3))
+    assert result["MOF_Name"].tolist() == ["Al-PMOF (Al2(OH)2TCPP)"]
+    assert result.iloc[0]["Source_DOI"] == "10.1038/s42004-022-00785-2"
+
+
+def test_mof321_and_mof322_aliases_match_only_their_exact_linker():
+    mof321 = known_mof_matches(query("H2PZVDC", "Al", 3))
+    mof322 = known_mof_matches(query("H2TVDC", "Al", 3))
+    assert mof321["MOF_Name"].tolist() == ["MOF-321"]
+    assert mof322["MOF_Name"].tolist() == ["MOF-322"]
+    assert mof321.iloc[0]["DOI_URL"] == "https://doi.org/10.1021/acscentsci.3c01087"
+    assert mof322.iloc[0]["DOI_URL"] == "https://doi.org/10.1021/acscentsci.3c01087"
+    assert known_mof_matches(query("H2PZVDC", "Cu", 2)).empty
 
 
 def test_app_uses_compatibility_safe_literature_loader():

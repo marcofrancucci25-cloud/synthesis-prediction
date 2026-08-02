@@ -57,6 +57,20 @@ LIGAND_ALIASES = {
         "h2bpzno2", "bpzno2", "3-nitro-4,4'-bipyrazole",
         "3-nitro-4,4'-bipyrazole (h2bpzno2)",
     },
+    "tcpp": {
+        "tcpp", "h2tcpp", "tetrakis(4-carboxyphenyl)porphyrin",
+        "tcpp (tetrakis(4-carboxyphenyl)porphyrin)",
+        "meso-tetra(4-carboxyphenyl)porphine",
+        "meso-tetra(4-carboxyphenyl)porphine (h2tcpp)",
+    },
+    "pzvdc": {
+        "pzvdc", "h2pzvdc", "pyrazine vinyl dicarboxylic acid",
+        "pyrazine vinyl dicarboxylate",
+    },
+    "tvdc": {
+        "tvdc", "h2tvdc", "thiophene vinyl dicarboxylic acid",
+        "thiophene vinyl dicarboxylate",
+    },
 }
 _ALIAS_LOOKUP = {
     _identity_key(alias): canonical

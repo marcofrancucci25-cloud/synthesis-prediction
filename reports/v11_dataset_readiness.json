@@ -1,0 +1,29 @@
+{
+  "version": "11.0-foundation-tranche-03",
+  "gold_records_total": 179,
+  "training_candidates": 163,
+  "locked_external_records": 16,
+  "training_class_distribution": {
+    "0": 13,
+    "1": 65,
+    "2": 85
+  },
+  "training_effective_class_distribution": {
+    "0": 5.911,
+    "1": 16.583,
+    "2": 39.128
+  },
+  "training_independent_doi_groups": 4,
+  "training_metal_ligand_groups": 7,
+  "training_ligand_families": 5,
+  "readiness_gates": {
+    "minimum_30_records_per_class": false,
+    "minimum_20_independent_literature_doi_groups": false,
+    "minimum_10_metal_ligand_groups": false,
+    "minimum_5_ligand_families": true,
+    "no_doi_overlap_between_training_and_benchmark": true
+  },
+  "promotion_gate_passed": false,
+  "production_model_retrained": false,
+  "decision": "Continue curation; class balance and independent-source coverage are insufficient for a defensible v11 retraining."
+}
