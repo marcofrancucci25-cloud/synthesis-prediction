@@ -20,5 +20,5 @@ def test_diagnostic_expanders_are_hidden_and_optimizer_reset_is_present():
     assert 'on_click=_reset_optimizer_inputs' in source
 
 
-def test_release_version_is_10_7_2():
-    assert Path('VERSION').read_text(encoding='utf-8').strip()=='10.7.2'
+def test_release_version_includes_interface_fix():
+    assert Path('VERSION').read_text(encoding='utf-8').strip()=='10.8.0'

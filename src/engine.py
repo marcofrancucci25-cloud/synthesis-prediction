@@ -2,6 +2,7 @@ from pathlib import Path
 import json, joblib, numpy as np, pandas as pd
 from .chem import build_row, canonicalize_family, canonicalize_ligand_for_model, parse_salt
 from .optimizer import joint_optimize
+from .mof_registry import known_mof_matches
 ROOT=Path(__file__).resolve().parents[1]
 ART=joblib.load(ROOT/'models/MOF_ChemAware_Ensemble_v8_0.joblib')
 SCHEMA=json.loads((ROOT/'models/feature_schema_v8_0.json').read_text())
@@ -108,6 +109,7 @@ def verified_precedents(values,n=5):
             'Temperatura_C':r.get('Temperatura_C'),'Tempo_ore':r.get('Tempo_ore'),
             'Rapporto_LM':r.get('Rapporto_LM'),'Volume solvente':r.get('Volume solvente'),
             'Encoding_Note':r.get('Encoding_Note'),
+            'MOF':r.get('MOF'),
         })
     return pd.DataFrame(rows).sort_values(['_rank','_distance']).head(n).drop(columns=['_rank','_distance'])
 
