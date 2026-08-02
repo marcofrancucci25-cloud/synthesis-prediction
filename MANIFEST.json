@@ -1,6 +1,6 @@
 {
-  "version": "10.7.2",
-  "file_count": 112,
+  "version": "10.8.0",
+  "file_count": 116,
   "files": [
     {
       "path": ".gitignore",
@@ -24,18 +24,18 @@
     },
     {
       "path": "README.md",
-      "size": 8156,
-      "sha256": "3432bcb7a579b26ff2be2b022ac57713599d0ce92ceeeb1f59b3e96f0d43f173"
+      "size": 8668,
+      "sha256": "527921321f656d7f3bde36f704bcddb95ad013a641195ff89b4bcc2ab4a64d3f"
     },
     {
       "path": "VERSION",
       "size": 7,
-      "sha256": "2a7d94d987c0b9383b81195fe37b9f7c65d1abb39bdf41e93cc8550a4431aef5"
+      "sha256": "bc6c5c6501ffa8c7897ccf11e1355d803f3c64a0bc484c20b052de6b1f0a1680"
     },
     {
       "path": "app.py",
-      "size": 34608,
-      "sha256": "a266c2177e9ae63f71843c3f6c2cf652c2bb33973141b28b41f1d60f89f064b6"
+      "size": 36499,
+      "sha256": "1fd6d942416c4b05ebc3fced2bed4334f6b1d5ca14abbc99904e83ec5f850dbb"
     },
     {
       "path": "data/Dataset_Multivariate_Schema_v10.csv",
@@ -61,6 +61,11 @@
       "path": "data/knowledge_database_integrated_v10_6.csv",
       "size": 519889,
       "sha256": "f87d9f3d7c93df5286ae21b7ef5c2e9a2d2752f75dd3080efc1acfd118394b18"
+    },
+    {
+      "path": "data/known_mof_literature_registry_v10_8.csv",
+      "size": 5610,
+      "sha256": "d7c658ee59a064d4407a25583b363fd0a84f812eefe638a341ffa55d71fef8a1"
     },
     {
       "path": "data/laboratory_in_situ_drug_loading_v10_6.csv",
@@ -258,6 +263,11 @@
       "sha256": "c585ddbb7698255ee25e186408bbc6a5d382383c2b55a696cb7b2f3da8f70615"
     },
     {
+      "path": "reports/SCIENTIFIC_UPDATE_v10_8.md",
+      "size": 1631,
+      "sha256": "431b446de5ca17a27161b6b97e2e64e5989b97c12515f7daded414ed2758b475"
+    },
+    {
       "path": "reports/SCIENTIFIC_UPDATE_v8_0.md",
       "size": 1535,
       "sha256": "481d44bfd7ba642fea6f33a6b4c4bc96b7d6508c7eefa0971ca5096d9725e6b5"
@@ -429,13 +439,18 @@
     },
     {
       "path": "src/engine.py",
-      "size": 15593,
-      "sha256": "5b68e8e5dc54fff6ecc50b856f3d9c428d6fa9db6d7209adb00abee3aeea0f01"
+      "size": 15669,
+      "sha256": "996cbccb4262c354a1261dd53cd8acdd47431514ad85cf68ed0aae8a8bbdcc5b"
     },
     {
       "path": "src/literature.py",
       "size": 6298,
       "sha256": "6d4d436fcac8088d49105e0a4825c421906a706e2e679351ffb8310d9ef8a309"
+    },
+    {
+      "path": "src/mof_registry.py",
+      "size": 6634,
+      "sha256": "e923a1faf0a57d1369b3967901ef7138b09b643a31ffa6a5bd063bd410306ab5"
     },
     {
       "path": "src/optimizer.py",
@@ -479,8 +494,8 @@
     },
     {
       "path": "tests/test_interface_v10_7_2.py",
-      "size": 917,
-      "sha256": "3e442451c2493504d1f428d6b7ecdb34c15a03badb5d3d5a93485b2b9f04605c"
+      "size": 930,
+      "sha256": "a111439fbdac55dafe3bced96646cbd201742bbafdd4f7896f28a9bba7e3abcf"
     },
     {
       "path": "tests/test_joint_optimizer.py",
@@ -491,6 +506,11 @@
       "path": "tests/test_lab_integration_v10_6.py",
       "size": 1520,
       "sha256": "8e8634c889aa9feeead4a92b095a3d8a53ea0cf922df2e7158b49b97b814a644"
+    },
+    {
+      "path": "tests/test_mof_literature_registry_v10_8.py",
+      "size": 3061,
+      "sha256": "93fd4a0651b64946703b53fcc0a03cb7eda25bd80d3696e5c27a396af6c3db8b"
     },
     {
       "path": "tests/test_positive_recommendation.py",

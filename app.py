@@ -24,6 +24,11 @@ def verified_precedents(values):
     fn = getattr(engine, "verified_precedents", None)
     return fn(values) if callable(fn) else pd.DataFrame()
 
+def known_mof_matches(values):
+    """Compatibility-safe curated literature matcher."""
+    fn = getattr(engine, "known_mof_matches", None)
+    return fn(values) if callable(fn) else pd.DataFrame()
+
 def optimize_joint(*args, **kwargs):
     """Compatibility-safe joint optimizer loader.
 
@@ -50,11 +55,11 @@ def optimize_joint(*args, **kwargs):
 from src.resolver import resolve_ligand, confirmed_entry
 from src.literature import search_literature
 
-APP_VERSION = "10.7.2"
+APP_VERSION = "10.8.0"
 
 st.set_page_config(page_title="MOF Synthesis Assistant", page_icon="🧪", layout="wide")
-st.title("🧪 MOF Synthesis Assistant v10.7.2")
-st.caption("Version 10.7.2 · Streamlined interface and HSAB-guided metal selection")
+st.title("🧪 MOF Synthesis Assistant v10.8.0")
+st.caption("Version 10.8.0 · Curated DOI-verified metal–linker literature matching")
 st.caption("Prediction evaluates the exact entered conditions. Optimization separately combines three-class risk, successful precedents, feasibility and applicability while keeping only ligand and metal fixed.")
 page = st.sidebar.radio("Module", ["Predict synthesis", "Literature search", "About"])
 
@@ -347,6 +352,7 @@ def input_form(prefix="p"):
 def render_prediction(result):
     values=result['values']; probabilities=result['probabilities']; predicted=result['predicted']; ad=result['ad']; validity=result.get('validity') or ad.get('validity',{})
     precedents=result.get('precedents',pd.DataFrame())
+    known_mofs=result.get('known_mofs',pd.DataFrame())
     labels=["Failed/no useful product","Amorphous or uncertain product","Crystalline MOF"]
     pcr=float(probabilities[2])
     if pcr>=0.75: signal="🟢 Very favorable conditions"
@@ -359,6 +365,33 @@ def render_prediction(result):
     c1.metric("Probability of crystalline MOF",f"{pcr:.1%}")
     c2.metric("Applicability domain",ad['label'])
     c3.metric("Prediction validity",validity.get('label','Not assessed'))
+    if not known_mofs.empty:
+        st.markdown("### 📚 Known metal–linker system in the curated literature")
+        st.success(
+            "The entered metal–linker combination has one or more DOI-verified "
+            "framework precedents in the curated registry."
+        )
+        for _, reference in known_mofs.iterrows():
+            doi = str(reference['Source_DOI'])
+            oxidation = reference.get('Reported_Oxidation_State')
+            oxidation_text = f"{reference['Metal']}({int(oxidation)})" if pd.notna(oxidation) else reference['Metal']
+            st.markdown(
+                f"**{reference['MOF_Name']}** · documented pair: `{oxidation_text}` – "
+                f"`{reference['Canonical_Ligand_Name']}`  \n"
+                f"{reference['Reference_Title']}  \n"
+                f"[Open DOI {doi}]({reference['DOI_URL']})"
+            )
+            if not bool(reference.get('Oxidation_State_Match', True)):
+                st.warning(
+                    "The oxidation state selected in the form differs from the state "
+                    "reported for this framework. The elemental metal–linker pair matches, "
+                    "but the ionic specification does not."
+                )
+        st.caption(
+            "This is a literature precedent, not identification of the obtained phase. "
+            "A metal–linker pair can form multiple networks; confirm the product by PXRD "
+            "comparison with a simulated/reference pattern or by SCXRD."
+        )
     strong_precedents=precedents[precedents['Match_Level'].isin(['Exact verified protocol','Close verified protocol'])] if not precedents.empty else precedents
     if not strong_precedents.empty:
         strongest=strong_precedents.iloc[0]
@@ -495,8 +528,8 @@ if page=="Predict synthesis":
     with action_right:
         st.button("Reset parameters", on_click=_reset_prediction_inputs, args=("p",), use_container_width=True)
     if run_prediction:
-        _,probabilities,predicted=predict(values); validity=prediction_validity(values); ad=applicability(values); influence,_=explain_prediction(values); precedents=verified_precedents(values)
-        st.session_state['prediction_result']={'values':values,'probabilities':probabilities,'predicted':predicted,'ad':ad,'validity':validity,'influence':influence,'precedents':precedents}
+        _,probabilities,predicted=predict(values); validity=prediction_validity(values); ad=applicability(values); influence,_=explain_prediction(values); precedents=verified_precedents(values); known_mofs=known_mof_matches(values)
+        st.session_state['prediction_result']={'values':values,'probabilities':probabilities,'predicted':predicted,'ad':ad,'validity':validity,'influence':influence,'precedents':precedents,'known_mofs':known_mofs}
         st.session_state.pop('optimization_results',None)
         st.session_state.pop('optimization_metadata',None)
     if 'prediction_result' in st.session_state: render_prediction(st.session_state['prediction_result'])
@@ -555,6 +588,6 @@ elif page=="Literature search":
         )
 else:
     st.markdown("""### Scope and scientific limitations
-Version 10.7.2 normalizes public ligand families and common linker aliases before prediction, reports verified laboratory or literature precedents independently from model probabilities, and adds oxidation-state-aware HSAB labels to the metal selector. The public interface no longer displays the scientific-scope and similar-record diagnostic panels, while an optimizer reset button restores its controls without changing the synthesis inputs.
+Version 10.8.0 normalizes public ligand families and common linker aliases before prediction, reports verified laboratory or literature precedents independently from model probabilities, and adds oxidation-state-aware HSAB labels to the metal selector. It also identifies exact curated metal–linker pairs that are known in the literature and supplies a DOI-validated article link. Framework names are presented as literature candidates, never as structural identification from composition alone.
 
 The explanation is **model-based and descriptive, not causal**. Optimized conditions are hypotheses for experimental prioritization, not guarantees of MOF formation. The predictive core remains the validated frozen v8.0 ensemble: two retraining candidates were rejected because their gain in crystalline recall reduced three-class specificity. Verified evidence is therefore displayed separately rather than being converted into an uncalibrated probability.""")

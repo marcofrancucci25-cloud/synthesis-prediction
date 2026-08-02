@@ -125,3 +125,11 @@ The optional verified-evidence loader now uses a compatibility-safe lookup. If S
 - Added a reset button dedicated to optimizer controls and results.
 - Added oxidation-state-aware Pearson HSAB labels (`Hard acid`, `Borderline acid`, `Soft acid`) to the metal-ion selector.
 - Removed hydrogen from the metal-ion list while keeping the underlying model data unchanged.
+
+## Curated literature matching v10.8.0
+
+- Detects exact canonical metal–linker pairs represented in a curated local registry.
+- Shows the documented framework candidate, article title and DOI-derived link directly in the prediction result.
+- Validates DOI syntax and never uses fuzzy matching or search snippets to assign a framework name.
+- Reports oxidation-state disagreements instead of hiding them.
+- Treats every framework name as a literature candidate: phase identification still requires PXRD/SCXRD.
