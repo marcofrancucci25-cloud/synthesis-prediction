@@ -1,6 +1,6 @@
 {
-  "version": "10.8.0",
-  "file_count": 116,
+  "version": "10.11.0",
+  "file_count": 131,
   "files": [
     {
       "path": ".gitignore",
@@ -24,18 +24,18 @@
     },
     {
       "path": "README.md",
-      "size": 8668,
-      "sha256": "527921321f656d7f3bde36f704bcddb95ad013a641195ff89b4bcc2ab4a64d3f"
+      "size": 11106,
+      "sha256": "925d1e975208fe76c1a4e4d9f51ce125e346c93f2ca0651d3535e1a11e24f3d3"
     },
     {
       "path": "VERSION",
-      "size": 7,
-      "sha256": "bc6c5c6501ffa8c7897ccf11e1355d803f3c64a0bc484c20b052de6b1f0a1680"
+      "size": 8,
+      "sha256": "029d525e1c271e57d2537627f7699f2a0c64d53900bafd3d7c530961c0306dbb"
     },
     {
       "path": "app.py",
-      "size": 36499,
-      "sha256": "1fd6d942416c4b05ebc3fced2bed4334f6b1d5ca14abbc99904e83ec5f850dbb"
+      "size": 36940,
+      "sha256": "e39ff62e474fe690b026583608c4c0a671f85b29758f83fdf3cfc4414fb7d54d"
     },
     {
       "path": "data/Dataset_Multivariate_Schema_v10.csv",
@@ -64,8 +64,8 @@
     },
     {
       "path": "data/known_mof_literature_registry_v10_8.csv",
-      "size": 5610,
-      "sha256": "d7c658ee59a064d4407a25583b363fd0a84f812eefe638a341ffa55d71fef8a1"
+      "size": 6723,
+      "sha256": "d9a035c18c301d4ac1bd4cdb7a686931668730e52d539fdf8e800d117f9b981b"
     },
     {
       "path": "data/laboratory_in_situ_drug_loading_v10_6.csv",
@@ -121,6 +121,41 @@
       "path": "data/successful_synthesis_library_v10_6.csv",
       "size": 235141,
       "sha256": "391176583856a57da03f96730f1ec0261938eaec7d592f110f70154b10e17a55"
+    },
+    {
+      "path": "data/v11_gold_synthesis_records.csv",
+      "size": 246833,
+      "sha256": "4c1bec20b96b02d230d522720544fe57cf845725b50b6d4958165fed18658dc5"
+    },
+    {
+      "path": "data/v11_literature_expansion_tranche_01.csv",
+      "size": 6465,
+      "sha256": "b87438d81cf98081a709678d42dffdc447e469fba8cfcdc6201d5915471617d4"
+    },
+    {
+      "path": "data/v11_literature_expansion_tranche_02.csv",
+      "size": 45912,
+      "sha256": "edcd8be23b6de26af614b0c224b3fc2c261181cdbda90904e4421188bd431a7e"
+    },
+    {
+      "path": "data/v11_literature_expansion_tranche_03.csv",
+      "size": 125224,
+      "sha256": "c4cff4d6bf4c4be98d07799cd24cd1f644aa5596086c31cf73aaced7f1ea3b90"
+    },
+    {
+      "path": "data/v11_locked_external_benchmark.csv",
+      "size": 14384,
+      "sha256": "acafe7aa4726fdc19e9e5e48d8ad9cfcdef2010c9bd98ca0e14e3c34c8178761"
+    },
+    {
+      "path": "data/v11_source_hkust1_moesm5.csv",
+      "size": 3954,
+      "sha256": "b961f856165e7515dc1357e51ec1f5078a1b6ca7c22e2b970316af119c7b20cd"
+    },
+    {
+      "path": "data/v11_training_candidates.csv",
+      "size": 233495,
+      "sha256": "8f1b8d275fc7a3976f30222156573045ba7410fe7f29c85d5c661f2efe233523"
     },
     {
       "path": "models/MOF_ChemAware_Ensemble_v8_0.joblib",
@@ -266,6 +301,21 @@
       "path": "reports/SCIENTIFIC_UPDATE_v10_8.md",
       "size": 1631,
       "sha256": "431b446de5ca17a27161b6b97e2e64e5989b97c12515f7daded414ed2758b475"
+    },
+    {
+      "path": "reports/SCIENTIFIC_UPDATE_v11_FOUNDATION.md",
+      "size": 2515,
+      "sha256": "dd79640585c6fb41463dd35da2417f66c2c2e48412c1150a13e2d7bb1c10bd30"
+    },
+    {
+      "path": "reports/SCIENTIFIC_UPDATE_v11_TRANCHE_02.md",
+      "size": 2480,
+      "sha256": "1eb8ec982331c6fced484f19d94f6f8073ea9e41e36142fce3dec30978c8b069"
+    },
+    {
+      "path": "reports/SCIENTIFIC_UPDATE_v11_TRANCHE_03.md",
+      "size": 3691,
+      "sha256": "165ddf84f6b9833b185a584067fd4487e177451b34ed1ec002e4304eb3fab1c4"
     },
     {
       "path": "reports/SCIENTIFIC_UPDATE_v8_0.md",
@@ -418,6 +468,11 @@
       "sha256": "5833fabc0cc4d634ae34ba6de13005fe5f1442b09994a6a60c640d0becfa8905"
     },
     {
+      "path": "reports/v11_dataset_readiness.json",
+      "size": 902,
+      "sha256": "a46777decff2ff3a8260e0b12dbdb629fccb743a0a2384bb83d0df0ff8783dc6"
+    },
+    {
       "path": "reports/volume_deleaked_validation_v10_7.json",
       "size": 3655,
       "sha256": "8bf4c4ee58ecefdbbbb8c148ed3bf1c435dd9bd29de4820a50c1bf5a903a8f31"
@@ -449,8 +504,8 @@
     },
     {
       "path": "src/mof_registry.py",
-      "size": 6634,
-      "sha256": "e923a1faf0a57d1369b3967901ef7138b09b643a31ffa6a5bd063bd410306ab5"
+      "size": 7126,
+      "sha256": "6a4339f91cebb7b16d2979322eb2b009c1ca5b1d1b35cd7702b4a2616fe831c2"
     },
     {
       "path": "src/optimizer.py",
@@ -494,8 +549,8 @@
     },
     {
       "path": "tests/test_interface_v10_7_2.py",
-      "size": 930,
-      "sha256": "a111439fbdac55dafe3bced96646cbd201742bbafdd4f7896f28a9bba7e3abcf"
+      "size": 931,
+      "sha256": "890430269e41607ef6639d11d6cee100b17bdae26ad7264aee4b76299bdddf98"
     },
     {
       "path": "tests/test_joint_optimizer.py",
@@ -509,8 +564,8 @@
     },
     {
       "path": "tests/test_mof_literature_registry_v10_8.py",
-      "size": 3061,
-      "sha256": "93fd4a0651b64946703b53fcc0a03cb7eda25bd80d3696e5c27a396af6c3db8b"
+      "size": 4062,
+      "sha256": "d6f7fd93161a70b2bb9a3d3639d53624ac0ac2845368d20a18f55d098a701aff"
     },
     {
       "path": "tests/test_positive_recommendation.py",
@@ -533,6 +588,11 @@
       "sha256": "2a819e89067c0a880c07a1ec595f70e10a3e1f6374e9e54de173e32f82c7e6cb"
     },
     {
+      "path": "tests/test_v11_gold_dataset.py",
+      "size": 7461,
+      "sha256": "3506ea134e97c093866d8d7530d958885e6218ddf871a492a71b314114a24e25"
+    },
+    {
       "path": "tools/audit_dataset_v10_5.py",
       "size": 2393,
       "sha256": "58d1e683ba35d568326f3246386d47e2721de3d36d00e4854dc56c3238a47256"
@@ -543,9 +603,24 @@
       "sha256": "22466e8e1abeb8d6b329fa72cccab8b80fa3b917e1913c490043b5972d2338cb"
     },
     {
+      "path": "tools/build_v11_gold_dataset.py",
+      "size": 13957,
+      "sha256": "f4af1a92419397e0dd7e5bcaaace8e831989e239fc7083c7a936cf5df0ef89dc"
+    },
+    {
       "path": "tools/curate_ligand_structures.py",
       "size": 2843,
       "sha256": "edbabef27d0bdaab9e54eeb0f15db25635a0896983e59a37e7bb9674f1d56bdc"
+    },
+    {
+      "path": "tools/curate_v11_tranche_02.py",
+      "size": 7279,
+      "sha256": "91c33cc9b40ba4ce16dc008368080a3a84aeeac8f6967675912040f9980f3d55"
+    },
+    {
+      "path": "tools/curate_v11_tranche_03.py",
+      "size": 9726,
+      "sha256": "c8729e24f0c757e25b77a0e6eace89e62ba304f637a0911720727b0e2dfa6d50"
     },
     {
       "path": "tools/evaluate_volume_deleaked_predictor_v10_7.py",

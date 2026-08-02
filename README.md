@@ -133,3 +133,28 @@ The optional verified-evidence loader now uses a compatibility-safe lookup. If S
 - Validates DOI syntax and never uses fuzzy matching or search snippets to assign a framework name.
 - Reports oxidation-state disagreements instead of hiding them.
 - Treats every framework name as a literature candidate: phase identification still requires PXRD/SCXRD.
+
+## v10.9.0 — v11 model-development foundation
+
+- Added a provenance-first gold synthesis dataset with DOI-derived links and explicit PXRD evidence.
+- Frozen the literature benchmark before retraining and enforced article-level DOI separation.
+- Added seven precursor-variation ZIF-8 protocols and one complete Co(BPZNH2) protocol.
+- Kept the production v8 predictor unchanged because the current v11 training candidates remain strongly class-imbalanced.
+- Added automatic readiness gates for class balance, independent DOI groups, metal–linker coverage and ligand-family diversity.
+
+## v10.10.0 — verified high-throughput Al-PMOF tranche
+
+- Added 45 article-labelled Al-PMOF experiments: 4 failed/no powder, 16 amorphous or poorly crystalline and 25 crystalline.
+- Preserved the original PXRD score, generation-2 yield, microwave power, complete precursor amounts and the linked characterization-data DOI.
+- Added an exact Al(III)–TCPP → Al-PMOF literature candidate with a DOI-derived article link.
+- Capped each literature DOI at 20 condition-equivalents for future fitting so one robotic campaign cannot dominate the model.
+- Recomputed v11 readiness: 79 gold records and 63 training candidates, with no DOI leakage; production remains frozen because independent-source and class-balance gates are not yet met.
+
+## v10.11.0 — HKUST-1, MOF-321 and MOF-322 evidence expansion
+
+- Added all 90 conditions from the published HKUST-1 robotic campaign while retaining the authors' continuous PXRD crystallinity/phase-purity score and all nine experimental variables.
+- Applied an explicit curation policy to that continuous score: 6 very-low/failed-target, 48 partial/poor-crystallinity and 36 high-crystallinity records; BET is retained but never used to assign the class.
+- Added ten article-designated high-crystallinity protocols: five MOF-321 and five MOF-322.
+- Added exact Al(III)–H2PZVDC and Al(III)–H2TVDC literature candidates, each linked to the validated article DOI without fuzzy matching.
+- Added an evidence-quality factor before future training weights where absolute precursor amounts or hydration are unavailable, while preserving the 20 condition-equivalent cap per DOI.
+- Recomputed v11 readiness: 179 gold records, 163 training candidates, 16 locked external cases and five ligand families. The predictor remains frozen because class-0, independent-DOI and metal–linker coverage gates are still unmet.

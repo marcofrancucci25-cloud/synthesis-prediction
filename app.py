@@ -55,11 +55,11 @@ def optimize_joint(*args, **kwargs):
 from src.resolver import resolve_ligand, confirmed_entry
 from src.literature import search_literature
 
-APP_VERSION = "10.8.0"
+APP_VERSION = "10.11.0"
 
 st.set_page_config(page_title="MOF Synthesis Assistant", page_icon="🧪", layout="wide")
-st.title("🧪 MOF Synthesis Assistant v10.8.0")
-st.caption("Version 10.8.0 · Curated DOI-verified metal–linker literature matching")
+st.title("🧪 MOF Synthesis Assistant v10.11.0")
+st.caption("Version 10.11.0 · 100 additional literature protocols with auditable outcome mapping; production predictor unchanged")
 st.caption("Prediction evaluates the exact entered conditions. Optimization separately combines three-class risk, successful precedents, feasibility and applicability while keeping only ligand and metal fixed.")
 page = st.sidebar.radio("Module", ["Predict synthesis", "Literature search", "About"])
 
@@ -588,6 +588,6 @@ elif page=="Literature search":
         )
 else:
     st.markdown("""### Scope and scientific limitations
-Version 10.8.0 normalizes public ligand families and common linker aliases before prediction, reports verified laboratory or literature precedents independently from model probabilities, and adds oxidation-state-aware HSAB labels to the metal selector. It also identifies exact curated metal–linker pairs that are known in the literature and supplies a DOI-validated article link. Framework names are presented as literature candidates, never as structural identification from composition alone.
+Version 10.11.0 normalizes public ligand families and common linker aliases before prediction, reports verified laboratory or literature precedents independently from model probabilities, and adds oxidation-state-aware HSAB labels to the metal selector. It identifies only exact curated metal–linker pairs and supplies DOI-derived article links. The provenance-first v11 gold dataset now contains 179 records, including a 90-experiment HKUST-1 campaign with its continuous PXRD-derived score and ten directly designated high-crystallinity MOF-321/MOF-322 protocols. Training candidates and the external benchmark remain separated at DOI level. Framework names are literature candidates, never structural identification from composition alone.
 
-The explanation is **model-based and descriptive, not causal**. Optimized conditions are hypotheses for experimental prioritization, not guarantees of MOF formation. The predictive core remains the validated frozen v8.0 ensemble: two retraining candidates were rejected because their gain in crystalline recall reduced three-class specificity. Verified evidence is therefore displayed separately rather than being converted into an uncalibrated probability.""")
+The explanation is **model-based and descriptive, not causal**. Optimized conditions are hypotheses for experimental prioritization, not guarantees of MOF formation. The predictive core remains the validated frozen v8.0 ensemble: two retraining candidates were rejected because their gain in crystalline recall reduced three-class specificity. The v11 foundation is not activated for training because its eligible records still lack sufficient independent-source and minority-class coverage; verified evidence is therefore displayed separately rather than being converted into an uncalibrated probability.""")
