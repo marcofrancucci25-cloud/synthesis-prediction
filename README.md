@@ -114,3 +114,7 @@ The exact-condition predictor now reports whether numerical inputs lie within th
 - Exact and close experimental precedents are shown independently from model probabilities, with DOI provenance where available.
 - Three retraining strategies were evaluated and rejected for global deployment because improvements in crystalline recall reduced three-class specificity and balanced accuracy.
 - The production predictor therefore remains the frozen v8.0 ensemble; verified evidence is never converted into a fictitious calibrated probability.
+
+### Deployment hotfix v10.7.1
+
+The optional verified-evidence loader now uses a compatibility-safe lookup. If Streamlit briefly combines the new `app.py` with a cached older `src/engine.py`, the evidence panel is temporarily disabled instead of raising an `AttributeError` and stopping the application.

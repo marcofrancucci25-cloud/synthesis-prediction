@@ -11,9 +11,18 @@ predict = engine.predict
 applicability = engine.applicability
 prediction_validity = engine.prediction_validity
 similar = engine.similar
-verified_precedents = engine.verified_precedents
 explain_prediction = engine.explain_prediction
 DB = engine.DB
+
+def verified_precedents(values):
+    """Compatibility-safe evidence loader for mixed Streamlit deployments.
+
+    Git-backed deployments can briefly expose a new app.py together with an
+    older cached engine.py.  In that window the optional evidence panel is
+    disabled instead of preventing the entire application from starting.
+    """
+    fn = getattr(engine, "verified_precedents", None)
+    return fn(values) if callable(fn) else pd.DataFrame()
 
 def optimize_joint(*args, **kwargs):
     """Compatibility-safe joint optimizer loader.
@@ -41,11 +50,11 @@ def optimize_joint(*args, **kwargs):
 from src.resolver import resolve_ligand, confirmed_entry
 from src.literature import search_literature
 
-APP_VERSION = "10.7.0"
+APP_VERSION = "10.7.1"
 
 st.set_page_config(page_title="MOF Synthesis Assistant", page_icon="🧪", layout="wide")
-st.title("🧪 MOF Synthesis Assistant v10.7.0")
-st.caption("Version 10.7.0 · Canonical chemical inputs and verified experimental precedents")
+st.title("🧪 MOF Synthesis Assistant v10.7.1")
+st.caption("Version 10.7.1 · Canonical chemical inputs and verified experimental precedents")
 st.caption("Prediction evaluates the exact entered conditions. Optimization separately combines three-class risk, successful precedents, feasibility and applicability while keeping only ligand and metal fixed.")
 page = st.sidebar.radio("Module", ["Predict synthesis", "Literature search", "About"])
 
@@ -531,6 +540,6 @@ elif page=="Literature search":
         )
 else:
     st.markdown("""### Scope and scientific limitations
-Version 10.7.0 normalizes public ligand families and common linker aliases before prediction, and reports verified laboratory or literature precedents independently from model probabilities. Seventeen eligible laboratory records and nine PXRD/XRD-supported literature protocols are available to the evidence layer. The in-situ ibuprofen experiments and the ambiguous DDS1 record remain outside the principal evidence layer.
+Version 10.7.1 normalizes public ligand families and common linker aliases before prediction, and reports verified laboratory or literature precedents independently from model probabilities. Seventeen eligible laboratory records and nine PXRD/XRD-supported literature protocols are available to the evidence layer. The in-situ ibuprofen experiments and the ambiguous DDS1 record remain outside the principal evidence layer. The evidence loader now remains compatible with temporary mixed-file states during Streamlit deployment.
 
 The explanation is **model-based and descriptive, not causal**. Optimized conditions are hypotheses for experimental prioritization, not guarantees of MOF formation. The predictive core remains the validated frozen v8.0 ensemble: two retraining candidates were rejected because their gain in crystalline recall reduced three-class specificity. Verified evidence is therefore displayed separately rather than being converted into an uncalibrated probability.""")

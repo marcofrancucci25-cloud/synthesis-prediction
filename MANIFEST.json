@@ -1,6 +1,6 @@
 {
-  "version": "10.7.0",
-  "file_count": 108,
+  "version": "10.7.1",
+  "file_count": 110,
   "files": [
     {
       "path": ".gitignore",
@@ -24,18 +24,18 @@
     },
     {
       "path": "README.md",
-      "size": 7421,
-      "sha256": "9f100f956213fe7d728f2b31d45b0429d8f10acfd2b0dfc8e3f8169a21159a99"
+      "size": 7725,
+      "sha256": "385179a4c524ff2059c4af505e77b39a043d19b2aa5ab3e5c597280a9c7428f5"
     },
     {
       "path": "VERSION",
       "size": 7,
-      "sha256": "0eb89770edc68d74f3aa0939923f8e5f678703ecabc781a39e1bc497250d02ea"
+      "sha256": "81c0a5ec8bc5c861c9e4e3a26ec28b95d4f029c833a5d5916aaf6541be7772a6"
     },
     {
       "path": "app.py",
-      "size": 33898,
-      "sha256": "ee38496ef623bcf6404ee235200d17f17fe2c403299857536cd32d904910c93d"
+      "size": 34408,
+      "sha256": "50fc4553fe92657496b13f38d4fa480e9eb1c5d3a91a7c583dc4be4268227c9e"
     },
     {
       "path": "data/Dataset_Multivariate_Schema_v10.csv",
@@ -124,8 +124,8 @@
     },
     {
       "path": "models/MOF_Hybrid_ChemAware_v8_0.joblib",
-      "size": 1944452,
-      "sha256": "d53d5ced142194d80d0cbec6e6a6d68b53682eda79cf59539118f0d38603ce2b"
+      "size": 1617920,
+      "sha256": "b0d249cb736f91426d90773154da141dc0df25d2840f5ad7b85574c13e35406d"
     },
     {
       "path": "models/MOF_Structural_Predictor_v10_5.joblib",
@@ -156,6 +156,11 @@
       "path": "reports/DEPLOYMENT_FIX_v10_0_1.md",
       "size": 320,
       "sha256": "ea92f62c04e75bf30d05debc69c843edbfc319b41c1db27a77016fbdc04827cb"
+    },
+    {
+      "path": "reports/DEPLOYMENT_FIX_v10_7_1.md",
+      "size": 786,
+      "sha256": "bf634fd0caed7d7ff0f0ed8f90bf63c40d00e3b0ae9ad7b45fa3632d5f3fe4cd"
     },
     {
       "path": "reports/DEPLOYMENT_FIX_v9_5_1.md",
@@ -451,6 +456,11 @@
       "path": "tests/smoke_test.py",
       "size": 801,
       "sha256": "99f027f50bee46a032482eaee2b95d52e704dbd025cb02113c20d9c82d774fe5"
+    },
+    {
+      "path": "tests/test_deployment_compatibility_v10_7_1.py",
+      "size": 416,
+      "sha256": "287d8270eba0684c280a97ddab8a13444458f856abd34b8450c79e353aceed16"
     },
     {
       "path": "tests/test_evidence_layer_v10_7.py",
