@@ -1,0 +1,149 @@
+{
+  "grouped_cv": {
+    "n": 1078,
+    "accuracy": 0.7374768089053804,
+    "balanced_accuracy": 0.6808076713200052,
+    "macro_f1": 0.6923526283677904,
+    "mcc": 0.5636414263107291,
+    "log_loss": 0.6451409836327759,
+    "brier_multiclass": 0.3669665593680199,
+    "ece_10": 0.08605921486678905,
+    "recall_failed": 0.5345622119815668,
+    "recall_amorphous": 0.6339869281045751,
+    "recall_crystalline": 0.8738738738738738,
+    "confusion_matrix": [
+      [
+        116,
+        57,
+        44
+      ],
+      [
+        31,
+        194,
+        81
+      ],
+      [
+        18,
+        52,
+        485
+      ]
+    ]
+  },
+  "external_evaluation": {
+    "frozen_v8_raw_input": {
+      "laboratory_held_out": {
+        "n": 17,
+        "accuracy": 0.17647058823529413,
+        "balanced_accuracy": 0.3333333333333333,
+        "macro_f1": 0.09999999999999999,
+        "mcc": 0.0,
+        "log_loss": 1.6052066759194754,
+        "brier_multiclass": 1.0729801927648492,
+        "ece_10": 0.5672553108688749,
+        "recall_failed": 1.0,
+        "recall_amorphous": 0.0,
+        "recall_crystalline": 0.0,
+        "confusion_matrix": [
+          [
+            3,
+            0,
+            0
+          ],
+          [
+            1,
+            0,
+            0
+          ],
+          [
+            13,
+            0,
+            0
+          ]
+        ]
+      },
+      "literature_positive": {
+        "n": 9,
+        "crystalline_argmax_recall": 0.8888888888888888,
+        "p_crystalline_at_least_0_5": 0.6666666666666666,
+        "mean_p_crystalline": 0.6076299174782496
+      }
+    },
+    "frozen_v8_canonical_input": {
+      "laboratory_held_out": {
+        "n": 17,
+        "accuracy": 0.17647058823529413,
+        "balanced_accuracy": 0.3333333333333333,
+        "macro_f1": 0.09999999999999999,
+        "mcc": 0.0,
+        "log_loss": 1.6052066759194754,
+        "brier_multiclass": 1.0729801927648492,
+        "ece_10": 0.5672553108688749,
+        "recall_failed": 1.0,
+        "recall_amorphous": 0.0,
+        "recall_crystalline": 0.0,
+        "confusion_matrix": [
+          [
+            3,
+            0,
+            0
+          ],
+          [
+            1,
+            0,
+            0
+          ],
+          [
+            13,
+            0,
+            0
+          ]
+        ]
+      },
+      "literature_positive": {
+        "n": 9,
+        "crystalline_argmax_recall": 0.8888888888888888,
+        "p_crystalline_at_least_0_5": 0.7777777777777778,
+        "mean_p_crystalline": 0.6354798428972741
+      }
+    },
+    "v10_7_volume_deleaked": {
+      "laboratory_held_out": {
+        "n": 17,
+        "accuracy": 0.4117647058823529,
+        "balanced_accuracy": 0.26495726495726496,
+        "macro_f1": 0.2571428571428571,
+        "mcc": -0.05816067269023052,
+        "log_loss": 1.0621215159998452,
+        "brier_multiclass": 0.6416896006329161,
+        "ece_10": 0.05780369556782987,
+        "recall_failed": 0.3333333333333333,
+        "recall_amorphous": 0.0,
+        "recall_crystalline": 0.46153846153846156,
+        "confusion_matrix": [
+          [
+            1,
+            0,
+            2
+          ],
+          [
+            1,
+            0,
+            0
+          ],
+          [
+            5,
+            2,
+            6
+          ]
+        ]
+      },
+      "literature_positive": {
+        "n": 9,
+        "crystalline_argmax_recall": 1.0,
+        "p_crystalline_at_least_0_5": 1.0,
+        "mean_p_crystalline": 0.7869799018391354
+      }
+    }
+  },
+  "scientific_boundary": "The 17 laboratory records and 9 positive literature protocols were held out from model fitting. The literature set does not measure specificity."
+}

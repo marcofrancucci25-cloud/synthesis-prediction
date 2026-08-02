@@ -1,6 +1,6 @@
 from pathlib import Path
 import json, joblib, numpy as np, pandas as pd
-from .chem import build_row
+from .chem import build_row, canonicalize_family, canonicalize_ligand_for_model, parse_salt
 from .optimizer import joint_optimize
 ROOT=Path(__file__).resolve().parents[1]
 ART=joblib.load(ROOT/'models/MOF_ChemAware_Ensemble_v8_0.joblib')
@@ -15,6 +15,101 @@ POSITIVE_DB=pd.read_csv(ROOT/'data/successful_synthesis_library_v10_6.csv')
 POSITIVE_MODEL_PATH=ROOT/'models/Positive_Condition_Recommendation_v10_4.joblib'
 POSITIVE_MODEL=joblib.load(POSITIVE_MODEL_PATH) if POSITIVE_MODEL_PATH.exists() else None
 FEATURES=ART['features']
+
+def _verified_evidence_database():
+    records=[]
+    lab=EVIDENCE_DB[EVIDENCE_DB.get('Source_Type',pd.Series(index=EVIDENCE_DB.index,dtype=object)).eq('laboratory_experiment')].copy()
+    if len(lab):
+        lab['Evidence_ID']=lab['ID'].astype(str)
+        lab['Evidence_Source']='Laboratory experiment'
+        lab['Source_DOI']=np.nan
+        lab['Evidence_Statement']=lab.get('Evidence',np.nan)
+        records.append(lab)
+    literature_path=ROOT/'data/literature_crystalline_challenge_v10_6.csv'
+    if literature_path.exists():
+        lit=pd.read_csv(literature_path)
+        lit['ID']=lit['Case_ID']
+        lit['Esito_ML']=2
+        lit['Evidence_ID']=lit['Case_ID']
+        lit['Evidence_Source']='Peer-reviewed literature'
+        lit['Evidence_Statement']=lit['Crystallinity_Evidence']
+        lit['PXRD_Confirmed']=True
+        records.append(lit)
+    if not records:
+        return pd.DataFrame()
+    evidence=pd.concat(records,ignore_index=True,sort=False)
+    evidence['Canonical_Ligand']=evidence['Legante'].map(canonicalize_ligand_for_model)
+    evidence['Canonical_Family']=[
+        canonicalize_family(f,l) for f,l in zip(evidence['Famiglia_Legante'],evidence['Canonical_Ligand'])
+    ]
+    return evidence
+
+VERIFIED_EVIDENCE=_verified_evidence_database()
+
+def _text_key(value):
+    return ' '.join(str(value or '').strip().casefold().replace(';','/').split())
+
+def _relative_difference(left,right,floor=0.1):
+    try:
+        a=float(left); b=float(right)
+        if not np.isfinite(a) or not np.isfinite(b): return np.inf
+        return abs(a-b)/max(abs(b),floor)
+    except Exception:
+        return np.inf
+
+def verified_precedents(values,n=5):
+    """Return independently verified laboratory/literature precedents.
+
+    Evidence is deliberately kept separate from classifier probabilities.  An
+    exact or close protocol can therefore correct the interpretation of an
+    uncertain model result without pretending to be a calibrated probability.
+    """
+    if VERIFIED_EVIDENCE.empty:
+        return VERIFIED_EVIDENCE.copy()
+    query=build_row(values).iloc[0]
+    ligand=canonicalize_ligand_for_model(query.get('Legante',''))
+    metal=str(query.get('Metallo','')).strip()
+    candidates=VERIFIED_EVIDENCE[
+        VERIFIED_EVIDENCE['Canonical_Ligand'].astype(str).str.casefold().eq(str(ligand).casefold())
+        & VERIFIED_EVIDENCE['Metallo'].astype(str).eq(metal)
+    ].copy()
+    if candidates.empty:
+        return candidates
+    query_counter=parse_salt(query.get('Sale_Metallico','')).get('Counterion_Class')
+    rows=[]
+    for _,r in candidates.iterrows():
+        salt_exact=_text_key(r.get('Sale_Metallico'))==_text_key(query.get('Sale_Metallico'))
+        counter=str(r.get('Counterion_Class') or parse_salt(r.get('Sale_Metallico','')).get('Counterion_Class'))
+        counter_match=_text_key(counter)==_text_key(query_counter)
+        solvent_match=_text_key(r.get('Solvente'))==_text_key(query.get('Solvente'))
+        additive_match=_text_key(r.get('Additivo_Colinker'))==_text_key(query.get('Additivo_Colinker'))
+        temp_delta=abs(float(r.get('Temperatura_C'))-float(query.get('Temperatura_C')))
+        time_delta=_relative_difference(r.get('Tempo_ore'),query.get('Tempo_ore'),floor=1.0)
+        ratio_delta=_relative_difference(r.get('Rapporto_LM'),query.get('Rapporto_LM'),floor=0.25)
+        volume_delta=_relative_difference(r.get('Volume solvente'),query.get('Volume solvente'),floor=1.0)
+        exact=(salt_exact and solvent_match and additive_match and temp_delta<=1
+               and time_delta<=0.05 and ratio_delta<=0.05 and volume_delta<=0.05)
+        close=(counter_match and solvent_match and temp_delta<=20
+               and time_delta<=0.50 and ratio_delta<=0.35)
+        if exact: level='Exact verified protocol'; rank=0
+        elif close: level='Close verified protocol'; rank=1
+        else: level='Same ligand–metal system'; rank=2
+        distance=(temp_delta/50.0 + min(time_delta,2) + min(ratio_delta,2)
+                  + min(volume_delta,2) + (0 if solvent_match else 1)
+                  + (0 if counter_match else 0.5) + (0 if additive_match else 0.5))
+        rows.append({
+            'Evidence_ID':r.get('Evidence_ID'),'Match_Level':level,'_rank':rank,
+            '_distance':distance,'Outcome_Class':int(r.get('Esito_ML')),
+            'Verified_Outcome':{0:'Failed',1:'Amorphous/uncertain',2:'Crystalline MOF'}.get(int(r.get('Esito_ML'))),
+            'Evidence_Source':r.get('Evidence_Source'),'Source_DOI':r.get('Source_DOI'),
+            'Evidence_Statement':r.get('Evidence_Statement'),'Legante':r.get('Legante'),
+            'Metallo':r.get('Metallo'),'Sale_Metallico':r.get('Sale_Metallico'),
+            'Solvente':r.get('Solvente'),'Additivo_Colinker':r.get('Additivo_Colinker'),
+            'Temperatura_C':r.get('Temperatura_C'),'Tempo_ore':r.get('Tempo_ore'),
+            'Rapporto_LM':r.get('Rapporto_LM'),'Volume solvente':r.get('Volume solvente'),
+            'Encoding_Note':r.get('Encoding_Note'),
+        })
+    return pd.DataFrame(rows).sort_values(['_rank','_distance']).head(n).drop(columns=['_rank','_distance'])
 
 def predict(values):
     x=build_row(values)
@@ -113,8 +208,9 @@ def prediction_validity(values):
     return {"score":score,"label":label,"reliable":reliable,"issues":issues,"details":details}
 
 def applicability(values):
-    ligand=str(values.get('Legante','')).strip().lower(); metal=str(values.get('Metallo','')); salt=str(values.get('Sale_Metallico',''))
-    seen_lig=ligand in set(TRAINING_DB['Legante'].astype(str).str.lower())
+    ligand=canonicalize_ligand_for_model(values.get('Legante','')).casefold(); metal=str(values.get('Metallo','')); salt=str(values.get('Sale_Metallico',''))
+    training_ligands=set(TRAINING_DB['Legante'].map(canonicalize_ligand_for_model).astype(str).str.casefold())
+    seen_lig=ligand in training_ligands
     seen_metal=metal in set(TRAINING_DB['Metallo'].astype(str))
     seen_salt=salt in set(TRAINING_DB['Sale_Metallico'].astype(str))
     identity_score=0.50*seen_lig+0.30*seen_metal+0.20*seen_salt
@@ -128,7 +224,7 @@ def applicability(values):
     return {'score':score,'label':label,'ligand_seen':seen_lig,'metal_seen':seen_metal,'salt_seen':seen_salt,'identity_score':float(identity_score),'validity':validity}
 
 def similar(values,n=15):
-    d=EVIDENCE_DB.copy(); metal=str(values.get('Metallo','')); fam=str(values.get('Famiglia_Legante',''))
+    d=EVIDENCE_DB.copy(); metal=str(values.get('Metallo','')); fam=canonicalize_family(values.get('Famiglia_Legante',''),values.get('Legante',''))
     d['_score']=0
     d.loc[d['Metallo'].astype(str)==metal,'_score']+=3
     d.loc[d['Famiglia_Legante'].astype(str)==fam,'_score']+=2
@@ -191,11 +287,17 @@ def explain_prediction(values):
 
 
 def optimize_joint(values, objective="Balanced conditions", n_samples=2500, top_n=12, constraints=None):
-    return joint_optimize(
-        values, model_artifact=ART, features=FEATURES, db=TRAINING_DB, positive_db=POSITIVE_DB,
+    canonical_values=build_row(values).iloc[0].to_dict()
+    result,metadata=joint_optimize(
+        canonical_values, model_artifact=ART, features=FEATURES, db=TRAINING_DB, positive_db=POSITIVE_DB,
         positive_model=POSITIVE_MODEL, objective=objective, n_samples=n_samples, top_n=top_n,
         constraints=constraints or {},
     )
+    # Canonical identities are model-internal. Preserve the scientist's original
+    # ligand label in the experimental plan.
+    if 'Legante' in result:
+        result['Legante']=values.get('Legante',canonical_values.get('Legante'))
+    return result,metadata
 
 # Compatibility wrapper retained for older callers.
 def optimize(values, top_n=10):

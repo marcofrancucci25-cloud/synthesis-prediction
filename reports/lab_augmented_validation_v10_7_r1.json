@@ -1,0 +1,74 @@
+{
+  "repeat_factor": 1,
+  "legacy_grouped_cv": {
+    "n": 1078,
+    "accuracy": 0.7346938775510204,
+    "balanced_accuracy": 0.6655040782175508,
+    "macro_f1": 0.6801203271167134,
+    "mcc": 0.556436702654051,
+    "log_loss": 0.6531298855031218,
+    "brier_multiclass": 0.37107112244992774,
+    "ece_10": 0.06978455564366509,
+    "recall_failed": 0.4608294930875576,
+    "recall_amorphous": 0.6437908496732027,
+    "recall_crystalline": 0.8918918918918919,
+    "confusion_matrix": [
+      [
+        100,
+        62,
+        55
+      ],
+      [
+        22,
+        197,
+        87
+      ],
+      [
+        17,
+        43,
+        495
+      ]
+    ]
+  },
+  "laboratory_condition_group_cv": {
+    "n": 17,
+    "accuracy": 0.7647058823529411,
+    "balanced_accuracy": 0.4188034188034188,
+    "macro_f1": 0.41904761904761906,
+    "mcc": 0.24618298195866545,
+    "log_loss": 0.7840643411604741,
+    "brier_multiclass": 0.44038488015855126,
+    "ece_10": 0.20446816979312316,
+    "recall_failed": 0.3333333333333333,
+    "recall_amorphous": 0.0,
+    "recall_crystalline": 0.9230769230769231,
+    "confusion_matrix": [
+      [
+        1,
+        0,
+        2
+      ],
+      [
+        0,
+        0,
+        1
+      ],
+      [
+        1,
+        0,
+        12
+      ]
+    ]
+  },
+  "literature_positive_external": {
+    "n": 9,
+    "crystalline_argmax_recall": 1.0,
+    "p_crystalline_at_least_0_5": 0.8888888888888888,
+    "mean_p_crystalline": 0.7921647137689523
+  },
+  "boundaries": [
+    "Laboratory CV holds out complete condition groups, including duplicate signatures.",
+    "Only one amorphous laboratory record is eligible, so its class recall has high uncertainty.",
+    "The literature challenge is positive-only and cannot estimate specificity."
+  ]
+}

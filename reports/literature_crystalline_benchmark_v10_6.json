@@ -1,0 +1,23 @@
+{
+  "challenge_records": 9,
+  "crystalline_predictions": 8,
+  "positive_recall": 0.8888888888888888,
+  "false_negative_records": [
+    "LITCRYST_002"
+  ],
+  "mean_p_crystalline": 0.6076299174782496,
+  "median_p_crystalline": 0.6410512815295848,
+  "mean_volume_missing_delta_p_crystalline": 0.2323611707547153,
+  "training_volume_missing_fraction": 0.7337662337662337,
+  "training_volume_missing_fraction_by_class": {
+    "0": 0.03225806451612903,
+    "1": 0.8627450980392157,
+    "2": 0.9369369369369369
+  },
+  "ui_family_categories_seen_by_training": [],
+  "limitations": [
+    "Positive-only challenge set: specificity and balanced accuracy cannot be estimated.",
+    "Training-source DOI provenance is absent, so literature overlap cannot be excluded.",
+    "Some multistage protocols are compressed into the single temperature/time representation supported by v8."
+  ]
+}

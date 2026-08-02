@@ -15,6 +15,68 @@ COMMON_LIGAND_ALIASES={
 FAMILIES=['Bipyrazole/pyrazole','Carboxylate','Imidazolate/azolate','Pyridyl/N-donor','Phosphonate','Sulfonate','Curcumin/β-diketonate','Mixed donor','Other/unknown']
 COUNTERIONS=['nitrate','acetate','chloride','bromide','iodide','sulfate','perchlorate','triflate','tetrafluoroborate','hexafluorophosphate','carbonate','hydroxide','oxide','alkoxide','acetylacetonate','other']
 
+# The v8 training data use an older Italian family vocabulary.  The public UI
+# intentionally exposes clearer English labels, so values must be translated
+# before they enter either the frozen model or a retrained successor.
+TRAINING_FAMILIES={
+ 'Altro','Bipyrazole','Carbossilati alifatici','Carbossilati aromatici','Curcumina',
+ 'Imidazolati','Non specificata','Organometallica','Organometallica - pirazoli',
+ 'Organometallica - scambio anionico','Pyrazole carbossilati','Triazole'
+}
+
+def canonicalize_family(family, ligand=''):
+    raw=str(family or '').strip()
+    if raw in TRAINING_FAMILIES:
+        return raw
+    low=raw.casefold(); lig=str(ligand or '').casefold()
+    if low=='carboxylate':
+        aliphatic=('fumar' ,'succin', 'malonic', 'oxalic', 'adipic', 'glutaric', 'maleic')
+        return 'Carbossilati alifatici' if any(k in lig for k in aliphatic) else 'Carbossilati aromatici'
+    if low=='imidazolate/azolate':
+        return 'Triazole' if 'triazol' in lig else 'Imidazolati'
+    if low=='bipyrazole/pyrazole':
+        return 'Pyrazole carbossilati' if any(k in lig for k in ('carbox','benzoic','bdc')) else 'Bipyrazole'
+    if low=='curcumin/β-diketonate':
+        return 'Curcumina'
+    if low in {'pyridyl/n-donor','phosphonate','sulfonate','mixed donor','other/unknown'}:
+        return 'Non specificata'
+    return raw or 'Non specificata'
+
+MODEL_LIGAND_ALIASES={
+ 'h2bdc':'1,4-Benzenedicarboxylic acid (H2BDC)',
+ 'bdc':'1,4-Benzenedicarboxylic acid (H2BDC)',
+ 'terephthalic acid':'1,4-Benzenedicarboxylic acid (H2BDC)',
+ 'benzene-1,4-dicarboxylic acid':'1,4-Benzenedicarboxylic acid (H2BDC)',
+ '1,4-benzenedicarboxylic acid':'1,4-Benzenedicarboxylic acid (H2BDC)',
+ 'h3btc':'1,3,5-Benzenetricarboxylic acid (H3BTC)',
+ 'btc':'1,3,5-Benzenetricarboxylic acid (H3BTC)',
+ 'trimesic acid':'1,3,5-Benzenetricarboxylic acid (H3BTC)',
+ 'benzene-1,3,5-tricarboxylic acid':'1,3,5-Benzenetricarboxylic acid (H3BTC)',
+ 'dobdc':'2,5-Dihydroxyterephthalic acid (H4DOBDC)',
+ 'h4dobdc':'2,5-Dihydroxyterephthalic acid (H4DOBDC)',
+ '2,5-dihydroxyterephthalic acid':'2,5-Dihydroxyterephthalic acid (H4DOBDC)',
+ 'hmim':'2-Methylimidazole',
+ '2-methylimidazole':'2-Methylimidazole',
+}
+
+def canonicalize_ligand_for_model(text):
+    """Return a stable model-facing name for common linker aliases.
+
+    Resolver output may contain ``alias | canonical name``.  Matching each side
+    prevents harmless naming differences from looking like an unseen ligand to
+    the character n-gram model.
+    """
+    raw=' '.join(str(text or '').strip().split())
+    parts=[p.strip().casefold() for p in raw.split('|') if p.strip()]
+    for part in parts or [raw.casefold()]:
+        if part in MODEL_LIGAND_ALIASES:
+            return MODEL_LIGAND_ALIASES[part]
+    low=raw.casefold()
+    for alias, canonical in MODEL_LIGAND_ALIASES.items():
+        if re.search(r'(?<![a-z0-9])'+re.escape(alias)+r'(?![a-z0-9])',low):
+            return canonical
+    return raw
+
 def normalize_ligand(text):
     t=' '.join(str(text or '').strip().split())
     return COMMON_LIGAND_ALIASES.get(t.lower(),t)
@@ -52,8 +114,9 @@ def parse_salt(formula):
 
 def build_row(values):
     row=dict(values)
-    row['Legante']=normalize_ligand(row.get('Legante',''))
-    row['Famiglia_Legante']=row.get('Famiglia_Legante') or infer_family(row['Legante'])
+    row['Legante']=canonicalize_ligand_for_model(normalize_ligand(row.get('Legante','')))
+    public_family=row.get('Famiglia_Legante') or infer_family(row['Legante'])
+    row['Famiglia_Legante']=canonicalize_family(public_family,row['Legante'])
     row['Ligand_Text']=(row['Legante']+' '+row['Famiglia_Legante']).lower()
     parsed=parse_salt(row.get('Sale_Metallico',''))
     for k,v in parsed.items():
