@@ -1,6 +1,6 @@
 {
-  "version": "10.12.0",
-  "file_count": 169,
+  "version": "10.13.0",
+  "file_count": 176,
   "files": [
     {
       "path": ".gitignore",
@@ -19,8 +19,8 @@
     },
     {
       "path": "CHANGELOG_FIXES.md",
-      "size": 26951,
-      "sha256": "e2350dc2fb077acfeac9d9eb9ae48c11b377a851b3a7f60a9b13afbf8d54fd17"
+      "size": 27676,
+      "sha256": "99f939cec10ecfa35efd50db86b644182662d6259c9e526ae39a452d19119133"
     },
     {
       "path": "LICENSE",
@@ -29,18 +29,18 @@
     },
     {
       "path": "README.md",
-      "size": 13275,
-      "sha256": "c73a0f399715d0c10e712b425ac0e1c5a1bf61ea2315ee7b4bb8e2b26c19d7db"
+      "size": 14240,
+      "sha256": "c38ed2d0715a3afbdb97f12b0b4f181d2f54113f8f1779fe20b02e9d6f25bb38"
     },
     {
       "path": "VERSION",
       "size": 8,
-      "sha256": "d9726efeeb6683e85af3c00240a3f9d1147f05040b34a05a71fabfae6b595d29"
+      "sha256": "f6f4723874c06097b71e3e1bba35f042f0efb07932e13ca85235a52a90681db4"
     },
     {
       "path": "app.py",
-      "size": 44589,
-      "sha256": "b4dc95aeddeee04af743bf5b8e6d19241e3e6bd5e00cd84dafa33ee35da105cb"
+      "size": 44610,
+      "sha256": "722a6f670e4675ac50f947d70d8488bbab36e23bb7cdfcd322a820cb8f883b48"
     },
     {
       "path": "data/Dataset_Multivariate_Schema_v10.csv",
@@ -188,6 +188,21 @@
       "sha256": "65fb781b06f7a65c7940a41fdd5c8450b4f34fe0dba00e484fc4efe926bd97bf"
     },
     {
+      "path": "data/v13_literature_records_needing_review.csv",
+      "size": 83043,
+      "sha256": "cf263ed9a5fdba77ee7453cf8264d0e6142442a1327eb648d8395846d5b8392d"
+    },
+    {
+      "path": "data/v13_negative_amorphous_literature.csv",
+      "size": 853610,
+      "sha256": "04bc2e1e7f0dc1542afaa3435ca4cbf541d730037d09d5dbcd0e3d4198c88ab9"
+    },
+    {
+      "path": "data/v13_source_rare_earth_landscape.csv",
+      "size": 92227,
+      "sha256": "c265cbb077346eaf9b17bd8a1a535059d207d0549ef4761196ee1cd89a8fa3cd"
+    },
+    {
       "path": "deep_test.py",
       "size": 16506,
       "sha256": "8ef6e97cab6241f5a934206c884cc55fb852d273660a6cc6249f7d2292263578"
@@ -311,6 +326,11 @@
       "path": "reports/LITERATURE_CRYSTALLINE_BENCHMARK_v10_6.md",
       "size": 5237,
       "sha256": "87108217b0a41930ec27887aabbb591c46f349d9732263f740b6be946a80fc71"
+    },
+    {
+      "path": "reports/NEGATIVE_AMORPHOUS_LITERATURE_v10_13.md",
+      "size": 1933,
+      "sha256": "f6b26879bc0f053503047e6228f8028ddf34e6eca34a8605846b5859bd020654"
     },
     {
       "path": "reports/PREDICTOR_VALIDATION_DECISION_v10_7.md",
@@ -553,6 +573,11 @@
       "sha256": "d6e4d9907058116c7a5677ff321032673d64cec027ff500271cb7451cb302601"
     },
     {
+      "path": "reports/v13_negative_evidence_readiness.json",
+      "size": 1075,
+      "sha256": "81af62b95d5fbb23373fb6ada58d92ac46d0b825e0fc5dd8ca04c8d92d3d8a73"
+    },
+    {
       "path": "reports/volume_deleaked_validation_v10_7.json",
       "size": 3655,
       "sha256": "8bf4c4ee58ecefdbbbb8c148ed3bf1c435dd9bd29de4820a50c1bf5a903a8f31"
@@ -579,8 +604,8 @@
     },
     {
       "path": "src/engine.py",
-      "size": 25953,
-      "sha256": "256d58513e21fd7b58ac163f866986c574fceab79c2674bddb3da8b068f48101"
+      "size": 26594,
+      "sha256": "167b7eb5f3a37fd726448c13241c523009e6b4822e968b46cb9b402639a8029d"
     },
     {
       "path": "src/literature.py",
@@ -699,8 +724,8 @@
     },
     {
       "path": "tests/test_interface_v10_7_2.py",
-      "size": 931,
-      "sha256": "cc72e7e28d5f2ae5700e4d2690050f2fa4b5afdb1779f4ac42ad71f4bd6d2744"
+      "size": 1003,
+      "sha256": "96f19bbe6ac97d623780744061fefc3d53759fdddbef89581400da1bf7873114"
     },
     {
       "path": "tests/test_joint_optimizer.py",
@@ -726,6 +751,11 @@
       "path": "tests/test_mof_literature_registry_v10_8.py",
       "size": 4062,
       "sha256": "d6f7fd93161a70b2bb9a3d3639d53624ac0ac2845368d20a18f55d098a701aff"
+    },
+    {
+      "path": "tests/test_negative_literature_v10_13.py",
+      "size": 1825,
+      "sha256": "3761d16cf6680d68b398476db5acf95e7358cf1b5369e3b6b5c432a8ac8e1bfc"
     },
     {
       "path": "tests/test_positive_recommendation.py",
@@ -801,6 +831,11 @@
       "path": "tools/curate_v11_tranche_03.py",
       "size": 9726,
       "sha256": "c8729e24f0c757e25b77a0e6eace89e62ba304f637a0911720727b0e2dfa6d50"
+    },
+    {
+      "path": "tools/curate_v13_negative_literature.py",
+      "size": 10296,
+      "sha256": "ab7a910178d3ed46e7c46906c398eda4fd3a90e95cffd9149ba23591f8e64894"
     },
     {
       "path": "tools/evaluate_volume_deleaked_predictor_v10_7.py",

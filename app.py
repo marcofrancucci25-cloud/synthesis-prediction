@@ -56,10 +56,10 @@ def optimize_joint(*args, **kwargs):
 from src.resolver import resolve_ligand, confirmed_entry
 from src.literature import search_literature
 
-APP_VERSION = "10.12.0"
+APP_VERSION = "10.13.0"
 
 st.set_page_config(page_title="MOF Synthesis Assistant", page_icon="🧪", layout="wide")
-st.title("🧪 MOF Synthesis Assistant v10.12.0")
+st.title("🧪 MOF Synthesis Assistant v10.13.0")
 st.caption("Audited leakage-resistant predictor · identity-safe ligand aliases · identity-first optimizer · explicit model abstention")
 st.caption("Prediction scores support experimental prioritization. They are not prospectively validated probabilities of synthesis success.")
 page = st.sidebar.radio("Module", ["Predict synthesis", "Literature search", "About"])
@@ -679,8 +679,8 @@ elif page=="Literature search":
         )
 else:
     st.markdown("""### Scope and scientific limitations
-Version 10.12.0 replaces the documentation-leakage-prone v8 production model with an audited model trained on 731 quality-approved records. All 347 REVIEW records and the solvent-volume feature are excluded from fitting. Numerical outputs are relative historical-evidence scores and are withheld when applicability or class separation is insufficient.
+Version 10.13.0 retains the audited v10.12 production model trained on 731 quality-approved records and adds a separate DOI-linked literature evidence layer: 673 explicitly reported no-solid outcomes and 86 explicitly amorphous/non-crystalline outcomes. These records inform precedent lookup but are not silently promoted into model training when key stoichiometric fields are absent.
 
 Ligand aliases now use exact identity matching: 1,2-BDC, 1,3-BDC and 1,4-BDC remain distinct, and mixed-linker systems are never collapsed to one component. The optimizer is identity-first: when at least three exact ligand–metal templates exist, unrelated same-metal linkers cannot dominate candidate generation or positive support. Applicability also requires nearby joint-condition evidence instead of marginal category presence alone.
 
-The future v11/v12 promotion gate remains closed. Direct laboratory experiments are locked into a multiclass external campaign, and DOI/protocol intake plus a preregistered prospective comparison are included. Independent failed/amorphous literature records and real PXRD/yield outcomes must be added before a publication-grade model can be promoted. Optimized conditions remain hypotheses for experimental prioritization, never guarantees of MOF formation.""")
+The future promotion gate remains closed. The new evidence is highly informative but source-correlated: 758 records come from one high-throughput article, and its public campaign key omits absolute precursor amounts, ligand:metal ratios, and solvent volume. Direct laboratory experiments remain locked into a multiclass external campaign. Optimized conditions remain hypotheses for experimental prioritization, never guarantees of MOF formation.""")

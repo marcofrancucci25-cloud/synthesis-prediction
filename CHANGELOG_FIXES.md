@@ -1,3 +1,18 @@
+# Espansione della letteratura negativa/amorfa — v10.13.0
+
+- aggiunti 759 record con DOI obbligatorio: 673 `no solid product` e 86
+  amorfi/non cristallini;
+- conservata integralmente la chiave sperimentale pubblica da 1.488 reazioni;
+- messi in quarantena 71 record `unknown phase`, senza trasformarli in falsi
+  negativi;
+- integrata la tranche nel pannello dei precedenti verificati, separata dal
+  punteggio del classificatore;
+- mantenuto congelato il modello v10.12: la forte correlazione intra-articolo e
+  i campi stechiometrici mancanti non soddisfano il gate per un retraining
+  scientificamente difendibile;
+- aggiunti controlli riproducibili su DOI, duplicati, classi e segregazione dei
+  record in revisione.
+
 # Correzione sensibilità stechiometrica — v10.11.2
 
 - eliminate le alternative L/M costruite con una sottrazione arbitraria;

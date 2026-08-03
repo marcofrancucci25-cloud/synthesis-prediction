@@ -1,3 +1,20 @@
+## Version 10.13.0
+
+Version 10.13 adds a DOI-linked negative/amorphous literature evidence layer
+without changing the v10.12 production model. The curated tranche contains
+759 explicit outcomes: 673 author-labelled `no solid product` experiments and
+86 XRD/PXRD-supported amorphous or `no crystalline product` experiments. Every
+row carries an article DOI; 758 high-throughput records also carry the public
+Zenodo dataset DOI. Seventy-one `unknown phase` records are held in a separate
+review file because an unidentified crystalline phase is not equivalent to a
+failed or amorphous synthesis.
+
+The high-throughput campaign is valuable but strongly source-correlated and its
+machine-readable key does not encode absolute precursor quantities,
+ligand:metal ratio, or solvent volume. The new rows are therefore used only as
+verified precedents and remain excluded from fitting until the missing protocol
+fields and an independent second curation pass are available.
+
 ## Version 10.12.0
 
 The production classifier is now an audited, leakage-resistant model trained
