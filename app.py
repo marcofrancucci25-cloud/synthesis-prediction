@@ -116,7 +116,7 @@ def _reset_prediction_inputs(prefix="p"):
     widget_suffixes = [
         "ligand_mode", "lig", "resolved_ligand", "candidate_choice",
         "fam", "metal", "ox", "counter", "hyd", "salt",
-        "solv", "add", "temp", "time", "ml", "mm", "ratio", "vol",
+        "solv", "add", "temp", "time", "ml", "mm", "ratio", "vol", "proc",
     ]
     for suffix in widget_suffixes:
         st.session_state.pop(prefix + suffix, None)
@@ -344,9 +344,22 @@ def input_form(prefix="p"):
     c7,c8=st.columns(2)
     ratio=c7.number_input("Ligand/metal molar ratio",0.01,100.0,float(mmol_l/mmol_m),key=prefix+"ratio")
     volume=c8.number_input("Solvent volume (mL)",0.0,1000.0,10.0,key=prefix+"vol")
+    procedure_options=["Not specified","Solvothermal","Hydrothermal","Room Temperature","Microwave","Sonochemical","Precipitation"]
+    procedure=st.selectbox(
+        "Synthesis procedure (optional)",procedure_options,key=prefix+"proc",
+        help="Matched against successful-synthesis precedents in the optimizer. The core three-class crystallinity model was trained without this field and does not use it.",
+    )
+    st.caption("Note: the crystallinity prediction above evaluates temperature, time and composition only; it does not distinguish solvothermal, microwave, hydrothermal or other procedures. Selecting a procedure here only sharpens which successful precedents are shown as supporting evidence in the optimizer.")
     model_ligand=ligand
     if canonical_title and canonical_title.casefold() not in ligand.casefold(): model_ligand=f"{ligand} | {canonical_title}"
-    return {"Legante":model_ligand,"Ligand_User_Input":ligand,"Ligand_SMILES":resolved.get("smiles") if resolved and resolved.get("success") else None,"Ligand_Resolution_Source":resolved.get("source") if resolved else None,"Famiglia_Legante":fam,"Metallo":metal,"Sale_Metallico":salt,"Counterion_Class":counterion,"Hydration_Number":hydration,"Oxidation_State":None if oxidation=="unknown" else oxidation,"Solvente":solvent,"Additivo_Colinker":additive,"Temperatura_C":temp,"Tempo_ore":hours,"mmol_Legante":mmol_l,"mmol_Sale":mmol_m,"Rapporto_LM":ratio,"Volume solvente":volume}
+    result={"Legante":model_ligand,"Ligand_User_Input":ligand,"Ligand_SMILES":resolved.get("smiles") if resolved and resolved.get("success") else None,"Ligand_Resolution_Source":resolved.get("source") if resolved else None,"Famiglia_Legante":fam,"Metallo":metal,"Sale_Metallico":salt,"Counterion_Class":counterion,"Hydration_Number":hydration,"Oxidation_State":None if oxidation=="unknown" else oxidation,"Solvente":solvent,"Additivo_Colinker":additive,"Temperatura_C":temp,"Tempo_ore":hours,"mmol_Legante":mmol_l,"mmol_Sale":mmol_m,"Rapporto_LM":ratio,"Volume solvente":volume}
+    # Only set the key when the user actually picked a procedure: an absent
+    # key preserves the exact pre-existing "Unknown" fallback used internally
+    # by the optimizer's precedent matching, rather than passing an explicit
+    # None that would reach the model's preprocessor as a raw null value.
+    if procedure!="Not specified":
+        result["Procedura_Sintetica"]=procedure
+    return result
 
 
 def render_prediction(result):
@@ -436,6 +449,7 @@ def render_prediction(result):
             for _,r in favorable.iterrows(): st.write(f"**{r.Parameter}:** current value `{r.Current}` is locally favorable.")
     if not ad['ligand_seen']: st.warning("The ligand was not observed exactly in training. Chemical recognition does not remove model extrapolation.")
     if not ad['metal_seen']: st.warning("The selected metal was not observed in training; uncertainty remains high.")
+    if ad.get('family_mismatch'): st.warning(f"Declared ligand family (\"{ad.get('declared_family')}\") does not match the family inferred from the ligand name (\"{ad.get('inferred_family')}\"). This is a model input and can change the prediction; verify the selection is intentional.")
     st.subheader("Hybrid joint synthesis optimizer")
     st.caption("Prediction and optimization are separate. The optimizer keeps only ligand and metal fixed, generates coherent condition sets from successful precedents, explores new combinations, and re-scores every proposal with the balanced three-class predictor.")
     with st.expander("Configure multivariable optimization", expanded=pcr < 0.65):
@@ -483,6 +497,8 @@ def render_prediction(result):
         b.metric("Best proposed",f"{best:.1%}")
         c.metric("Expected improvement",f"{best-pcr:+.1%}")
         d.metric("Feasible candidates searched",f"{(meta or {}).get('feasible_candidates',len(out)):,}")
+        for warning_text in (meta or {}).get('warnings', []):
+            st.warning(warning_text)
         # Keep internal recommendation metadata available for downloads and scientific
         # diagnostics, but present researchers with only the five strongest, directly
         # actionable experimental proposals.
