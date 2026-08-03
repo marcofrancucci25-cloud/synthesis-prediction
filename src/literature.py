@@ -150,6 +150,59 @@ CAS_RE = re.compile(r"\b\d{2,7}-\d{2}-\d\b")
 ABBREV_RE = re.compile(r"\(([A-Za-z][A-Za-z0-9'′\-]{1,20})\)")
 QUOTED_RE = re.compile(r'["“]([^"”]{5,120})["”]')
 
+# Generic words injected into every discover_ligand_identifiers() search query
+# (see the query string built there): matching these tells us nothing about
+# whether a given search RESULT is actually about the ligand the person
+# asked for, so they are excluded before checking relevance.
+_QUERY_NOISE_WORDS = {
+    "ligand", "mof", "linker", "synonym", "cas", "smiles", "chemical", "name",
+    "and", "or", "the", "of", "a", "an", "for",
+}
+_ALPHA_TOKEN_RE = re.compile(r"[a-z]+")
+
+
+def _significant_tokens(text: str) -> set[str]:
+    """Alphabetic tokens (length >= 3) from `text`, excluding generic/noise words.
+
+    Deliberately excludes bare numbers: locants like "3" or "4" are far too
+    common in chemistry text to serve as a relevance signal on their own,
+    so only the more distinctive word tokens (e.g. "amino", "bipyrazole")
+    are used to decide whether a search result is actually discussing the
+    queried ligand.
+    """
+    tokens = _ALPHA_TOKEN_RE.findall((text or "").casefold())
+    return {t for t in tokens if len(t) >= 3 and t not in _QUERY_NOISE_WORDS}
+
+
+def _result_is_relevant(result_text: str, query_tokens: set[str]) -> bool:
+    """Whether a single search result's text plausibly discusses the query ligand.
+
+    Tavily is a general web search engine, not a chemistry-aware tool: a
+    result can rank for the query while actually being about something else
+    entirely, with an unrelated compound name appearing elsewhere on the
+    same page. Without this check, any CAS number/abbreviation/quoted string
+    found ANYWHERE in that result's text would be extracted and offered to
+    the user as if it were a confirmed synonym of the query ligand -- this
+    is how an unrelated compound can end up presented as a "candidate
+    structure" with a plausible-looking IUPAC name and diagram. Requiring
+    most of the query's own distinctive words to actually appear in the
+    result text is a coarse but effective guard against that failure mode.
+
+    Substring containment is used rather than exact token matching, so a
+    query token like "amino" is still counted as present in text that says
+    "diamino" or "monoamino" -- common compound-word variation that exact
+    set intersection would otherwise miss.
+    """
+    if not query_tokens:
+        # A query with no distinctive word tokens (e.g. a bare formula or a
+        # CAS number) cannot be relevance-checked this way; fall back to the
+        # previous permissive behavior rather than silently discarding
+        # everything.
+        return True
+    haystack = (result_text or "").casefold()
+    hits = sum(1 for token in query_tokens if token in haystack)
+    return hits >= max(1, -(-len(query_tokens) * 6 // 10))  # ceil(60% of query_tokens)
+
 
 def discover_ligand_identifiers(keyword: str, max_identifiers: int = 8) -> list[str]:
     """Discover alternate names/CAS/abbreviations from scholarly snippets.
@@ -172,8 +225,14 @@ def discover_ligand_identifiers(keyword: str, max_identifiers: int = 8) -> list[
     except Exception:
         return []
     candidates=[]
+    query_tokens = _significant_tokens(query)
     for item in response.get("results", []):
         text=" ".join([str(item.get("title") or ""), str(item.get("content") or "")])
+        if not _result_is_relevant(text, query_tokens):
+            # This result does not actually appear to discuss the queried
+            # ligand (see _result_is_relevant docstring): do not trust any
+            # identifier extracted from it, however well-formed it looks.
+            continue
         candidates.extend(CAS_RE.findall(text))
         candidates.extend(ABBREV_RE.findall(text))
         candidates.extend(QUOTED_RE.findall(text))
