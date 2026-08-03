@@ -1,0 +1,23 @@
+{
+  "release": "10.13.0",
+  "curated_negative_amorphous_records": 759,
+  "class_0_no_solid_records": 673,
+  "class_1_amorphous_or_no_crystalline_records": 86,
+  "article_dois": 2,
+  "records_from_largest_article": 758,
+  "largest_article_fraction": 0.9986824769,
+  "unknown_phase_records_quarantined": 71,
+  "source_campaign_rows_preserved": 1488,
+  "doi_present_on_every_curated_record": true,
+  "raw_outcome_present_on_every_curated_record": true,
+  "model_retrained": false,
+  "promotion_gate": "CLOSED",
+  "blocking_reasons": [
+    "758 of 759 records originate from one article and are not independent source-level observations",
+    "the public campaign key does not encode absolute precursor amounts, ligand:metal ratio, or solvent volume",
+    "the tranche has completed one source-verification curation pass, not an independent dual review",
+    "prospective multiclass external validation remains pending"
+  ],
+  "allowed_use": "DOI-linked verified precedent retrieval and future curation",
+  "disallowed_use": "automatic promotion into production-model fitting"
+}
