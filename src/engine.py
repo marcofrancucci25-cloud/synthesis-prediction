@@ -279,6 +279,69 @@ def similar(values,n=15):
         except: pass
     return d.sort_values('_score',ascending=False).head(n)
 
+def _supported_ratio_candidates(values, maximum=10):
+    """Return central, actually observed L/M ratios for comparable chemistry.
+
+    Sensitivity analysis must not manufacture an extreme ratio by subtracting a
+    fixed number from the current value.  Prefer the exact ligand/metal system,
+    then the same metal and canonical ligand family, then the same metal.  The
+    global training set is used only as a final fallback.  In every case the
+    candidates are restricted to the central 90% of the frozen training data.
+    """
+    ratios=pd.to_numeric(DB.get('Rapporto_LM',pd.Series(dtype=float)),errors='coerce')
+    finite=np.isfinite(ratios) & ratios.gt(0)
+    limits=TRAINING_RANGES.get('Rapporto_LM',{})
+    lower=float(limits.get('q05',ratios[finite].quantile(0.05)))
+    upper=float(limits.get('q95',ratios[finite].quantile(0.95)))
+    central=finite & ratios.between(lower,upper,inclusive='both')
+    metal=str(values.get('Metallo','')).strip()
+    ligand=canonicalize_ligand_for_model(values.get('Legante','')).casefold()
+    family=canonicalize_family(values.get('Famiglia_Legante',''),values.get('Legante',''))
+    db_ligand=DB.get('Legante',pd.Series('',index=DB.index)).map(canonicalize_ligand_for_model).astype(str).str.casefold()
+    db_family=pd.Series([
+        canonicalize_family(f,l) for f,l in zip(
+            DB.get('Famiglia_Legante',pd.Series('',index=DB.index)),
+            DB.get('Legante',pd.Series('',index=DB.index)),
+        )
+    ],index=DB.index)
+    same_metal=DB.get('Metallo',pd.Series('',index=DB.index)).astype(str).eq(metal)
+    pools=[
+        (central & same_metal & db_ligand.eq(ligand),'same ligand–metal system',5),
+        (central & same_metal & db_family.eq(family),'same metal and ligand family',8),
+        (central & same_metal,'same metal',10),
+        (central,'central training data',1),
+    ]
+    selected_scope='central training data'
+    selected=ratios[central]
+    for mask,scope,minimum in pools:
+        candidate=ratios[mask]
+        if candidate.notna().sum()>=minimum:
+            selected=candidate
+            selected_scope=scope
+            break
+    rounded=selected.round(4)
+    counts=rounded.value_counts()
+    top=counts.head(int(maximum))
+    candidates=sorted(float(x) for x in top.index)
+    support={float(x):int(top.loc[x]) for x in top.index}
+    return candidates,support,selected_scope,(lower,upper)
+
+def _ratio_perturbation(values,ratio):
+    """Change L/M coherently while preserving total precursor concentration."""
+    ratio=float(ratio)
+    ligand=float(values.get('mmol_Legante'))
+    metal=float(values.get('mmol_Sale'))
+    total=ligand+metal
+    if not np.isfinite(ratio) or ratio<=0 or not np.isfinite(total) or total<=0:
+        raise ValueError('Ratio sensitivity requires positive numeric precursor amounts.')
+    new_metal=total/(1.0+ratio)
+    new_ligand=total-new_metal
+    candidate=dict(values)
+    candidate['Rapporto_LM']=ratio
+    candidate['mmol_Legante']=new_ligand
+    candidate['mmol_Sale']=new_metal
+    return candidate,new_ligand,new_metal
+
 def explain_prediction(values):
     """Local, model-based sensitivity summary for the current synthesis.
 
@@ -288,11 +351,12 @@ def explain_prediction(values):
     """
     _, base_p, _ = predict(values)
     base_cryst = float(base_p[2])
+    ratio_candidates,ratio_support,ratio_scope,ratio_limits=_supported_ratio_candidates(values)
     specs = {
         'Solvente': list(DB['Solvente'].dropna().astype(str).value_counts().head(10).index),
         'Temperatura_C': sorted(set([max(20.0, float(values.get('Temperatura_C',120))+d) for d in (-40,-20,20,40)] + [80.0,100.0,120.0,150.0])),
         'Tempo_ore': sorted(set([max(0.5, float(values.get('Tempo_ore',24))*m) for m in (0.5,2.0)] + [6.0,12.0,24.0,48.0,72.0])),
-        'Rapporto_LM': sorted(set([max(0.1, float(values.get('Rapporto_LM',1))+d) for d in (-1.0,-0.5,0.5,1.0)] + [0.5,1.0,2.0,3.0])),
+        'Rapporto_LM': ratio_candidates,
         'Additivo_Colinker': list(DB['Additivo_Colinker'].fillna('Nessuno').astype(str).value_counts().head(8).index),
         'Volume solvente': sorted(set([max(0.5, float(values.get('Volume solvente',10))*m) for m in (0.5,1.5,2.0)])),
     }
@@ -306,17 +370,44 @@ def explain_prediction(values):
         tested=[]
         current=values.get(field)
         for candidate in candidates:
-            if str(candidate)==str(current):
-                continue
-            v=dict(values); v[field]=candidate
             try:
-                _, pp, _=predict(v); tested.append((candidate,float(pp[2])))
+                if field=='Rapporto_LM' and np.isclose(float(candidate),float(current),rtol=0,atol=1e-9):
+                    continue
+            except (TypeError,ValueError):
+                pass
+            if field!='Rapporto_LM' and str(candidate)==str(current):
+                continue
+            try:
+                detail='Numerically within the validated training range.'
+                support_count=np.nan
+                support_scope=''
+                if field=='Rapporto_LM':
+                    v,new_ligand,new_metal=_ratio_perturbation(values,candidate)
+                    support_count=int(ratio_support.get(float(candidate),0))
+                    support_scope=ratio_scope
+                    detail=(
+                        f"Amounts rebalanced at constant total precursor amount: "
+                        f"ligand {new_ligand:.4g} mmol, metal {new_metal:.4g} mmol; "
+                        f"{support_count} observed record(s) in {support_scope}."
+                    )
+                else:
+                    v=dict(values); v[field]=candidate
+                validity=prediction_validity(v)
+                if not validity.get('reliable',False):
+                    continue
+                _, pp, _=predict(v)
+                tested.append({
+                    'value':candidate,'probability':float(pp[2]),'detail':detail,
+                    'validity_score':float(validity['score']),
+                    'support_count':support_count,'support_scope':support_scope,
+                })
             except Exception:
                 continue
         if not tested:
             continue
-        best_val,best_p=max(tested,key=lambda z:z[1])
-        mean_alt=float(np.mean([z[1] for z in tested]))
+        best=max(tested,key=lambda z:z['probability'])
+        best_val,best_p=best['value'],best['probability']
+        mean_alt=float(np.mean([z['probability'] for z in tested]))
         improvement=best_p-base_cryst
         support=base_cryst-mean_alt
         direction='Limiting' if improvement>0.025 else ('Favorable' if support>0.025 else 'Neutral')
@@ -326,8 +417,22 @@ def explain_prediction(values):
             'Influence':influence, 'Direction':direction,
             'Potential_improvement':max(0.0,improvement),
             'Best_alternative':best_val, 'Best_P_crystalline':best_p,
+            'Best_Alternative_Detail':best['detail'],
+            'Alternative_Validity_Score':best['validity_score'],
+            'Alternative_Support_Count':best['support_count'],
+            'Alternative_Support_Scope':best['support_scope'],
+            'Candidate_Count':len(tested),
         })
-    return pd.DataFrame(rows).sort_values('Influence',ascending=False).reset_index(drop=True), base_cryst
+    columns=[
+        'Parameter','Field','Current','Influence','Direction','Potential_improvement',
+        'Best_alternative','Best_P_crystalline','Best_Alternative_Detail',
+        'Alternative_Validity_Score','Alternative_Support_Count',
+        'Alternative_Support_Scope','Candidate_Count',
+    ]
+    frame=pd.DataFrame(rows,columns=columns)
+    if frame.empty:
+        return frame,base_cryst
+    return frame.sort_values('Influence',ascending=False).reset_index(drop=True),base_cryst
 
 
 
