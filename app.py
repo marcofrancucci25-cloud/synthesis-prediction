@@ -456,6 +456,13 @@ def render_prediction(result):
     if not ad['ligand_seen']: st.warning("The ligand was not observed exactly in training. Chemical recognition does not remove model extrapolation.")
     if not ad['metal_seen']: st.warning("The selected metal was not observed in training; uncertainty remains high.")
     if ad.get('family_mismatch'): st.warning(f"Declared ligand family (\"{ad.get('declared_family')}\") does not match the family inferred from the ligand name (\"{ad.get('inferred_family')}\"). This is a model input and can change the prediction; verify the selection is intentional.")
+    solubility=ad.get('solubility') or {}
+    if not solubility.get('smiles_resolved'):
+        st.info("Ligand/solvent solubility could not be screened (no resolved ligand structure). Verify solubility manually before selecting a solvent.")
+    elif solubility.get('water_solubility_flag')=='likely poorly soluble' and 'water' in str(values.get('Solvente','')).casefold():
+        st.warning(f"The selected solvent (water) is estimated to be a poor match for this ligand (ESOL estimated log S ≈ {solubility.get('logS_water'):.1f}, water). This is a computed screening estimate (RDKit/ESOL), not a lab measurement — verify experimentally, especially for rigid symmetric aromatic acids where this estimate is known to be optimistic.")
+    elif solubility.get('solubility_penalty',0) > 0.5:
+        st.warning("The selected solvent is estimated to be a chemically poor match for this ligand's polarity (computed screening estimate, not a lab measurement). Consider a less/more polar alternative or verify solubility experimentally.")
     st.subheader("Hybrid joint synthesis optimizer")
     st.caption("Prediction and optimization are separate. The optimizer keeps only ligand and metal fixed, generates coherent condition sets from successful precedents, explores new combinations, and re-scores every proposal with the balanced three-class predictor.")
     with st.expander("Configure multivariable optimization", expanded=pcr < 0.65):
@@ -505,6 +512,8 @@ def render_prediction(result):
         d.metric("Feasible candidates searched",f"{(meta or {}).get('feasible_candidates',len(out)):,}")
         for warning_text in (meta or {}).get('warnings', []):
             st.warning(warning_text)
+        if "Solubility_penalty" in out.columns and out["Solubility_penalty"].max() > 0.5:
+            st.caption("Note: proposals are ranked with an estimated ligand/solvent solubility penalty (RDKit/ESOL-based screening, see the 'Solubility_penalty' column) — lower is better. It is a computed estimate, not a lab measurement.")
         # Keep internal recommendation metadata available for downloads and scientific
         # diagnostics, but present researchers with only the five strongest, directly
         # actionable experimental proposals.

@@ -122,3 +122,47 @@ Vedi il messaggio di accompagnamento per il dettaglio; in sintesi:
 ## File di test aggiunti (non necessari in produzione, utili per revisione)
 - `deep_test.py` — batteria dei 47 test del report iniziale
 - `verify_fixes.py` — 13 verifiche mirate sulle correzioni 1-4
+
+## 7. [NUOVA FUNZIONALITÀ] Screening chimico di compatibilità legante/solvente
+**File:** `src/solubility.py` (nuovo), `src/engine.py`, `src/optimizer.py`, `app.py`
+Segnalato dall'utente: l'ottimizzatore poteva proporre acqua come solvente
+anche per leganti chiaramente lipofili/insolubili in acqua, perché non
+esisteva alcun controllo di solubilità — né nel modello congelato (nessuna
+feature di solubilità nello schema v8.0) né nella logica dell'ottimizzatore
+(il pool di solventi è scelto solo per frequenza storica col metallo).
+
+**Implementazione (livello euristico, non richiede retraining):**
+- Stima quantitativa della solubilità in acqua tramite l'equazione
+  ESOL/Delaney (2004), un modello QSPR consolidato e verificabile, calcolata
+  da RDKit a partire dallo SMILES del legante già risolto altrove nell'app.
+- Per gli altri solventi, un controllo più grezzo basato sull'indice di
+  polarità di Snyder (scala tabulata standard in chimica analitica) rispetto
+  al logP calcolato del legante — dichiarato esplicitamente più debole
+  dell'ESOL, e mai usato per bloccare, solo per penalizzare.
+- La penalità di solubilità entra nel punteggio dell'ottimizzatore
+  (`Solubility_penalty`) con un peso proprio, non azzerabile da nessun
+  obiettivo (a differenza di green/speed), perché un legante insolubile nel
+  solvente proposto non è mai una sintesi fisicamente valida, qualunque sia
+  l'obiettivo scelto. I pesi di ciascun obiettivo sono rinormalizzati
+  automaticamente a somma 1.
+- Se lo SMILES del legante non è disponibile, il controllo NON viene
+  finto come superato: viene emesso un avviso esplicito sia nella singola
+  predizione sia nell'ottimizzatore.
+
+**Limite noto e dichiarato esplicitamente nel codice e nell'interfaccia:**
+ESOL non ha un termine di punto di fusione e sovrastima sistematicamente la
+solubilità di acidi aromatici rigidi e simmetrici (es. l'acido tereftalico,
+H2BDC, il legante più usato negli esempi di questa app: ESOL stima logS
+-1,8 "probabilmente solubile" contro un valore sperimentale reale di circa
+-4, "poco solubile"). Il controllo intercetta bene i casi netti (es. una
+porfirina molto lipofila in acqua pura) ma NON sostituisce il giudizio
+chimico per questa classe di leganti. Il messaggio mostrato in interfaccia
+lo dichiara esplicitamente.
+
+**Verificato:** con un legante lipofilo di test (porfirina tetracarbossilica),
+l'acqua passa da 10/10 proposte dell'ottimizzatore (senza il controllo) a
+0/10 (con il controllo attivo), sostituita da etanolo/metanolo. 20 nuovi
+test dedicati (`test_solubility_feature.py`), tutti PASS; nessuna
+regressione sulle 121 verifiche precedenti (61 test ufficiali + 47 + 13,
+con un aggiornamento a `verify_fixes.py` per riflettere il nuovo avviso
+legittimo quando lo SMILES manca).

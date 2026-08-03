@@ -48,7 +48,9 @@ check("Fix3.c il fallback resta comunque utilizzabile (nessun crash)", len(r) > 
 # controllo anche il caso "buono": nessun warning se il solvente richiesto esiste
 r2, m2 = optimize_joint(base, objective="Balanced conditions", n_samples=800, top_n=5,
                          constraints={"allowed_solvents": ["DMF"]})
-check("Fix3.d nessun warning quando il solvente richiesto è valido", len(m2.get("warnings", [])) == 0, f"{m2.get('warnings')}")
+check("Fix3.d nessun avviso sui solventi quando il solvente richiesto è valido",
+      not any("solvent" in w.lower() and "allowed" in w.lower() for w in m2.get("warnings", [])),
+      f"{m2.get('warnings')}")
 
 print()
 print("=== FIX 4: avviso su famiglia legante incoerente ===")
