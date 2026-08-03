@@ -40,6 +40,16 @@ def _verified_evidence_database():
         lit['Evidence_Statement']=lit['Crystallinity_Evidence']
         lit['PXRD_Confirmed']=True
         records.append(lit)
+    negative_path=ROOT/'data/v13_negative_amorphous_literature.csv'
+    if negative_path.exists():
+        negative=pd.read_csv(negative_path)
+        negative['ID']=negative['Record_ID']
+        negative['Esito_ML']=pd.to_numeric(negative['Outcome_Class'],errors='raise').astype(int)
+        negative['Evidence_ID']=negative['Record_ID']
+        negative['Evidence_Source']='DOI-linked peer-reviewed negative/amorphous literature'
+        negative['Volume solvente']=pd.to_numeric(negative.get('Volume_solvente_mL'),errors='coerce')
+        negative['Encoding_Note']=negative.get('Exclusion_Reason',np.nan)
+        records.append(negative)
     if not records:
         return pd.DataFrame()
     evidence=pd.concat(records,ignore_index=True,sort=False)

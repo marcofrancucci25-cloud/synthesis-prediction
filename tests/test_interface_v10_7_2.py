@@ -21,4 +21,5 @@ def test_diagnostic_expanders_are_hidden_and_optimizer_reset_is_present():
 
 
 def test_release_version_includes_interface_fix():
-    assert Path('VERSION').read_text(encoding='utf-8').strip()=='10.12.0'
+    major, minor, patch = map(int, Path('VERSION').read_text(encoding='utf-8').strip().split('.'))
+    assert (major, minor, patch) >= (10, 7, 2)
