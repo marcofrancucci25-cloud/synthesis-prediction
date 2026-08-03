@@ -19,7 +19,7 @@ def test_optimizer_uses_quality_weighted_support():
     assert len(result) <= 5
     assert result['Positive_support_score'].between(0,1).all()
     assert 'Nearest_positive_quality' in result.columns
-    assert meta['optimizer_version']=='10.6.1'
+    assert meta['optimizer_version']=='10.12.0'
 
 if __name__=='__main__':
     test_positive_model_loaded(); test_optimizer_uses_quality_weighted_support(); print('positive recommendation tests passed')

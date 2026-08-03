@@ -1,0 +1,59 @@
+{
+  "version": "10.12.0-audited-deleaked",
+  "features": [
+    "Ligand_Text",
+    "Temperatura_C",
+    "Tempo_ore",
+    "mmol_Legante",
+    "mmol_Sale",
+    "Rapporto_LM",
+    "Hydration_Number",
+    "Oxidation_State",
+    "Metal_Atomic_Number",
+    "Metal_Atomic_Weight",
+    "Metal_Group",
+    "Metal_Period",
+    "Metal_Electronegativity",
+    "Famiglia_Legante",
+    "Metallo",
+    "Sale_Metallico",
+    "Counterion_Class",
+    "Metal_Block",
+    "Solvente",
+    "Additivo_Colinker"
+  ],
+  "numeric": [
+    "Temperatura_C",
+    "Tempo_ore",
+    "mmol_Legante",
+    "mmol_Sale",
+    "Rapporto_LM",
+    "Hydration_Number",
+    "Oxidation_State",
+    "Metal_Atomic_Number",
+    "Metal_Atomic_Weight",
+    "Metal_Group",
+    "Metal_Period",
+    "Metal_Electronegativity"
+  ],
+  "categorical": [
+    "Famiglia_Legante",
+    "Metallo",
+    "Sale_Metallico",
+    "Counterion_Class",
+    "Metal_Block",
+    "Solvente",
+    "Additivo_Colinker"
+  ],
+  "text": "Ligand_Text",
+  "classes": {
+    "0": "Failed",
+    "1": "Amorphous/uncertain",
+    "2": "Crystalline MOF"
+  },
+  "notes": [
+    "Solvent volume is used for physical validity checks only, never prediction.",
+    "Rows flagged REVIEW by the deterministic audit are excluded.",
+    "Model outputs are relative evidence scores, not prospectively validated probabilities."
+  ]
+}

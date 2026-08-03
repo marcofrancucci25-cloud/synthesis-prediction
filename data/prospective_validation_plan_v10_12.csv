@@ -1,0 +1,7 @@
+Experiment_Arm,Condition_Source,Required_Replicates,Randomized_Order,Operator_Blinded_To_Score,Pre_registered_Primary_Endpoint,Required_Characterization,Acceptance_Rule,Status
+CONTROL_CURRENT,Current laboratory condition,3,Yes,Yes,Target-phase PXRD match,"PXRD; isolated yield; microscopy if available","Target-phase PXRD match confirmed by reviewer",PLANNED
+CONTROL_1TO1_DMF,Standard 1:1 DMF baseline,3,Yes,Yes,Target-phase PXRD match,"PXRD; isolated yield; microscopy if available","Target-phase PXRD match confirmed by reviewer",PLANNED
+LITERATURE_REFERENCE,Closest DOI-verified protocol,3,Yes,Yes,Target-phase PXRD match,"PXRD; isolated yield; microscopy if available","Target-phase PXRD match confirmed by reviewer",PLANNED
+MODEL_TOP1,Highest identity-first hybrid score,3,Yes,Yes,Target-phase PXRD match,"PXRD; isolated yield; microscopy if available","Target-phase PXRD match confirmed by reviewer",PLANNED
+MODEL_TOP2,Second identity-first proposal,3,Yes,Yes,Target-phase PXRD match,"PXRD; isolated yield; microscopy if available","Target-phase PXRD match confirmed by reviewer",PLANNED
+MODEL_TOP3,Third identity-first proposal,3,Yes,Yes,Target-phase PXRD match,"PXRD; isolated yield; microscopy if available","Target-phase PXRD match confirmed by reviewer",PLANNED
