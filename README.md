@@ -1,4 +1,16 @@
-## Version 9.5.0
+## Version 10.12.0
+
+The production classifier is now an audited, leakage-resistant model trained
+on 731 quality-approved historical records. Solvent volume is excluded from
+prediction and retained only for physical validity checks. Outputs are relative
+historical-evidence scores with an explicit abstention gate, not prospectively
+validated probabilities.
+
+Version 10.12 also keeps BDC positional isomers and mixed-linker systems
+chemically distinct, makes exact ligand-metal evidence dominant in the joint
+optimizer, introduces joint-condition applicability scoring, locks the direct
+laboratory campaign out of future training, and includes DOI-intake and
+prospective-validation templates. See `reports/SCIENTIFIC_HARDENING_v10_12.md`.
 
 Updated ligand identity card with a 2D RDKit structure, clean molecular identifiers, key descriptors, and expandable technical details.
 
@@ -167,3 +179,14 @@ The optional verified-evidence loader now uses a compatibility-safe lookup. If S
 - Every local alternative must pass the numerical validity gate before its model response can be displayed.
 - Renamed the result as a supported model perturbation and explicitly separated it from the joint synthesis optimizer.
 - Preserved the frozen production predictor and all corrections included in the supplied v10.11.1 patch.
+
+## v10.12.0 — scientific hardening
+
+- Replaced the leakage-prone v8 production artifact with an audited no-volume model.
+- Excluded all 347 rows marked REVIEW from model fitting.
+- Added abstention and non-probabilistic score language.
+- Prevented 1,3-BDC, 1,2-BDC, 1,4-BDC and mixed-linker identity collapse.
+- Made optimizer template generation and positive support identity-first.
+- Added joint-condition support to the applicability-domain score.
+- Locked all direct laboratory records into a future multiclass external benchmark.
+- Added DOI negative-outcome intake and preregistered prospective-validation templates.

@@ -1,0 +1,24 @@
+{
+  "version": "10.12.0-validation-assets",
+  "future_training_records": 146,
+  "external_benchmark_records": 33,
+  "external_class_distribution": {
+    "0": 3,
+    "1": 1,
+    "2": 29
+  },
+  "external_sources": {
+    "locked_peer_reviewed_positive": 16,
+    "locked_direct_laboratory_campaign": 17
+  },
+  "readiness_gates": {
+    "benchmark_contains_all_three_classes": true,
+    "benchmark_minimum_10_per_class": false,
+    "training_minimum_20_independent_dois": false,
+    "training_minimum_10_metal_ligand_groups": false,
+    "zero_record_overlap": true,
+    "zero_doi_overlap": true
+  },
+  "promotion_gate_passed": false,
+  "decision": "Do not retrain v11/v12 from these candidates yet; acquire independent failed and amorphous campaigns with complete DOI/protocol provenance."
+}

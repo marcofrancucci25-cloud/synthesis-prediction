@@ -10,6 +10,7 @@ import src.engine as engine
 predict = engine.predict
 applicability = engine.applicability
 prediction_validity = engine.prediction_validity
+prediction_interpretation = engine.prediction_interpretation
 similar = engine.similar
 explain_prediction = engine.explain_prediction
 DB = engine.DB
@@ -55,12 +56,12 @@ def optimize_joint(*args, **kwargs):
 from src.resolver import resolve_ligand, confirmed_entry
 from src.literature import search_literature
 
-APP_VERSION = "10.11.2"
+APP_VERSION = "10.12.0"
 
 st.set_page_config(page_title="MOF Synthesis Assistant", page_icon="🧪", layout="wide")
-st.title("🧪 MOF Synthesis Assistant v10.11.2")
-st.caption("Version 10.11.9 · Ligand resolver: relevance filter on the Tavily fallback (rejects unrelated compounds); metal+family-specific numeric bounds; miscibility, pKa, solubility & vessel-condition checks")
-st.caption("Prediction evaluates the exact entered conditions. Optimization separately combines three-class risk, successful precedents, feasibility and applicability while keeping only ligand and metal fixed.")
+st.title("🧪 MOF Synthesis Assistant v10.12.0")
+st.caption("Audited leakage-resistant predictor · identity-safe ligand aliases · identity-first optimizer · explicit model abstention")
+st.caption("Prediction scores support experimental prioritization. They are not prospectively validated probabilities of synthesis success.")
 page = st.sidebar.radio("Module", ["Predict synthesis", "Literature search", "About"])
 
 
@@ -377,14 +378,20 @@ def render_prediction(result):
     known_mofs=result.get('known_mofs',pd.DataFrame())
     labels=["Failed/no useful product","Amorphous or uncertain product","Crystalline MOF"]
     pcr=float(probabilities[2])
-    if pcr>=0.75: signal="🟢 Very favorable conditions"
-    elif pcr>=0.50: signal="🟡 Moderately favorable conditions"
-    elif pcr>=0.30: signal="🟠 Challenging synthesis"
-    else: signal="🔴 Crystallization unlikely under current conditions"
+    interpretation=prediction_interpretation(values,probabilities)
+    if not interpretation['show_scores']: signal="⚪ Model abstention"
+    elif pcr>=0.75: signal="🟢 Strong relative support for crystallinity"
+    elif pcr>=0.50: signal="🟡 Moderate relative support for crystallinity"
+    elif pcr>=0.30: signal="🟠 Weak or mixed relative support"
+    else: signal="🔴 Low relative support for crystallinity"
     st.divider(); st.subheader(signal)
-    st.write(f"**Predicted outcome:** {labels[predicted]}")
+    if interpretation['show_scores']:
+        st.write(f"**Highest-scoring historical outcome:** {labels[predicted]}")
+    else:
+        st.write("**No numerical class decision is reported for this input.**")
+    st.caption(interpretation['message'])
     c1,c2,c3=st.columns(3)
-    c1.metric("Probability of crystalline MOF",f"{pcr:.1%}")
+    c1.metric("Relative crystalline score",f"{pcr:.1%}" if interpretation['show_scores'] else "Withheld")
     c2.metric("Applicability domain",ad['label'])
     c3.metric("Prediction validity",validity.get('label','Not assessed'))
     if not known_mofs.empty:
@@ -429,15 +436,16 @@ def render_prediction(result):
         if pd.notna(strongest.get('Source_DOI')):
             doi=str(strongest['Source_DOI']).removeprefix('https://doi.org/')
             st.markdown(f"Source: [https://doi.org/{doi}](https://doi.org/{doi})")
-        st.caption("The probability above remains the model estimate; experimental evidence is not converted into a fictitious calibrated probability.")
+        st.caption("Experimental evidence is kept separate from the model score and takes interpretive priority.")
     if not validity.get('reliable', True):
-        st.error("The entered conditions are outside or near the edge of the experimentally validated range. The numerical probabilities are shown for transparency, but should not be interpreted as reliable success estimates.")
+        st.error("The entered conditions are outside or near the supported range. Numerical interpretation is withheld.")
         for issue in validity.get('issues', [])[:6]:
             st.write(f"- {issue}")
     else:
         st.caption(f"Validated-range score: {validity.get('score',1.0):.2f} · Applicability score: {ad['score']:.2f}")
-    with st.expander("View all class probabilities"):
-        st.bar_chart(pd.DataFrame({"Probability":probabilities},index=labels))
+    if interpretation['show_scores']:
+        with st.expander("View all relative class scores"):
+            st.bar_chart(pd.DataFrame({"Relative score":probabilities},index=labels))
     influence=result['influence']
     st.subheader("Why did the model reach this prediction?")
     st.caption(
@@ -455,7 +463,7 @@ def render_prediction(result):
             st.markdown("### 🔴 Main limiting factors")
             if limiting.empty: st.write("No strong limiting condition was detected locally.")
             for _,r in limiting.iterrows():
-                st.write(f"**{r.Parameter}:** current `{r.Current}` → best supported perturbation `{r.Best_alternative}` (model response up to {r.Best_P_crystalline:.1%} crystalline probability)")
+                st.write(f"**{r.Parameter}:** current `{r.Current}` → best supported perturbation `{r.Best_alternative}` (relative crystalline score up to {r.Best_P_crystalline:.1%})")
                 if r.Field=='Rapporto_LM' and pd.notna(r.get('Best_Alternative_Detail')):
                     st.caption(str(r.Best_Alternative_Detail))
         with right:
@@ -530,9 +538,9 @@ def render_prediction(result):
         st.subheader("Pareto-ranked experimental proposals")
         best=float(out['P_Crystalline'].max())
         a,b,c,d=st.columns(4)
-        a.metric("Current P(crystalline)",f"{pcr:.1%}")
-        b.metric("Best proposed",f"{best:.1%}")
-        c.metric("Expected improvement",f"{best-pcr:+.1%}")
+        a.metric("Current relative score",f"{pcr:.1%}")
+        b.metric("Best proposed score",f"{best:.1%}")
+        c.metric("Score difference",f"{best-pcr:+.1%}")
         d.metric("Feasible candidates searched",f"{(meta or {}).get('feasible_candidates',len(out)):,}")
         n_metal_rows=(meta or {}).get('metal_specific_evidence_rows',0)
         n_metal_family_rows=(meta or {}).get('metal_family_specific_evidence_rows',0)
@@ -567,19 +575,19 @@ def render_prediction(result):
             'Additivo_Colinker':'Additive', 'Temperatura_C':'Temperature (°C)',
             'Tempo_ore':'Time (h)', 'mmol_Legante':'Ligand (mmol)',
             'mmol_Sale':'Metal (mmol)', 'Rapporto_LM':'L:M ratio',
-            'Volume solvente':'Solvent volume (mL)', 'P_Failed':'P(failed)',
-            'P_Amorphous':'P(amorphous)', 'P_Crystalline':'P(crystalline)',
+            'Volume solvente':'Solvent volume (mL)', 'P_Failed':'Score(failed)',
+            'P_Amorphous':'Score(amorphous)', 'P_Crystalline':'Score(crystalline)',
             'AD_score':'Domain score', 'Feasibility_score':'Feasibility',
             'Optimization_score':'Overall score',
         }
         display=display.rename(columns=rename_cols)
-        for col in ['P(failed)','P(amorphous)','P(crystalline)']:
+        for col in ['Score(failed)','Score(amorphous)','Score(crystalline)']:
             if col in display: display[col]=display[col].map(lambda x:f"{float(x):.1%}")
         for col in ['Domain score','Feasibility','Overall score']:
             if col in display: display[col]=display[col].map(lambda x:f"{float(x):.3f}")
         for col in ['Temperature (°C)','Time (h)','Ligand (mmol)','Metal (mmol)','L:M ratio','Solvent volume (mL)','Hydration']:
             if col in display: display[col]=pd.to_numeric(display[col],errors='coerce').round(3)
-        st.caption("Top five proposals ranked by the overall hybrid optimization score.")
+        st.caption("Top five identity-first proposals. Model columns are relative ranking scores, not success probabilities.")
         st.dataframe(display,use_container_width=True,hide_index=True)
         st.download_button("Download joint experimental plan",out.to_csv(index=False).encode(),"mof_joint_optimization_plan.csv","text/csv")
     if not precedents.empty:
@@ -671,6 +679,8 @@ elif page=="Literature search":
         )
 else:
     st.markdown("""### Scope and scientific limitations
-Version 10.11.9 fixes a resolver bug reported by the user: the last-resort Tavily fallback used to discover alternate ligand identifiers could extract a CAS number/abbreviation/quoted string from ANYWHERE in a search result's text, including results not actually about the queried ligand -- presenting a completely unrelated compound as a plausible-looking candidate structure. A relevance filter now requires most of the query's distinctive words to actually appear in a result before any identifier from it is trusted; see CHANGELOG_FIXES.md, including a note on a related, deliberately unresolved gap (a diamino-bipyrazole variant with no verified local structure). It also carries forward the four-tier metal+ligand-family-specific numeric-range cascade (10.11.7-10.11.8) and the four-part optimizer chemistry-screening set: water/nonpolar-solvent miscibility, modulator/ligand pKa compatibility, temperature/solvent/vessel-type physical consistency, and RDKit/ESOL-based ligand/solvent solubility (10.11.3-10.11.6; heuristic layers on top of the optimizer's scoring/output, not trained model features; only solubility is folded into the ranking score). It also carries forward the reworked literature search page (reset control, results reordered as title, DOI, then abstract), canonical public ligand families and common linker aliases before prediction, verified laboratory or literature precedents reported independently from model probabilities, oxidation-state-aware HSAB labels on the metal selector, exact curated metal–linker pairs with DOI-derived article links, and stoichiometrically coherent, domain-filtered local L:M sensitivity. The provenance-first v11 gold dataset contains 179 records, including a 90-experiment HKUST-1 campaign with its continuous PXRD-derived score and ten directly designated high-crystallinity MOF-321/MOF-322 protocols. Training candidates and the external benchmark remain separated at DOI level. Framework names are literature candidates, never structural identification from composition alone.
+Version 10.12.0 replaces the documentation-leakage-prone v8 production model with an audited model trained on 731 quality-approved records. All 347 REVIEW records and the solvent-volume feature are excluded from fitting. Numerical outputs are relative historical-evidence scores and are withheld when applicability or class separation is insufficient.
 
-The explanation is **model-based and descriptive, not causal**. Optimized conditions are hypotheses for experimental prioritization, not guarantees of MOF formation. The predictive core remains the validated frozen v8.0 ensemble: two retraining candidates were rejected because their gain in crystalline recall reduced three-class specificity. The v11 foundation is not activated for training because its eligible records still lack sufficient independent-source and minority-class coverage; verified evidence is therefore displayed separately rather than being converted into an uncalibrated probability.""")
+Ligand aliases now use exact identity matching: 1,2-BDC, 1,3-BDC and 1,4-BDC remain distinct, and mixed-linker systems are never collapsed to one component. The optimizer is identity-first: when at least three exact ligand–metal templates exist, unrelated same-metal linkers cannot dominate candidate generation or positive support. Applicability also requires nearby joint-condition evidence instead of marginal category presence alone.
+
+The future v11/v12 promotion gate remains closed. Direct laboratory experiments are locked into a multiclass external campaign, and DOI/protocol intake plus a preregistered prospective comparison are included. Independent failed/amorphous literature records and real PXRD/yield outcomes must be added before a publication-grade model can be promoted. Optimized conditions remain hypotheses for experimental prioritization, never guarantees of MOF formation.""")

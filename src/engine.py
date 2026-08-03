@@ -8,8 +8,8 @@ from .solvent_miscibility import miscibility_check as _miscibility_check
 from .optimizer import joint_optimize
 from .mof_registry import known_mof_matches
 ROOT=Path(__file__).resolve().parents[1]
-ART=joblib.load(ROOT/'models/MOF_ChemAware_Ensemble_v8_0.joblib')
-SCHEMA=json.loads((ROOT/'models/feature_schema_v8_0.json').read_text())
+ART=joblib.load(ROOT/'models/MOF_Audited_Deleaked_v10_12.joblib')
+SCHEMA=json.loads((ROOT/'models/feature_schema_v10_12.json').read_text())
 TRAINING_DB=pd.read_csv(ROOT/'data/knowledge_database.csv')
 EVIDENCE_DB_PATH=ROOT/'data/knowledge_database_integrated_v10_6.csv'
 EVIDENCE_DB=pd.read_csv(EVIDENCE_DB_PATH) if EVIDENCE_DB_PATH.exists() else TRAINING_DB.copy()
@@ -142,6 +142,29 @@ def predict(values):
     x=_coerce_numeric_features(x)
     p=ART['weights'][0]*ART['rf_model'].predict_proba(x)+ART['weights'][1]*ART['ligand_text_model'].predict_proba(x)
     return x, p[0], int(np.argmax(p[0]))
+
+
+def prediction_interpretation(values, probabilities):
+    """Return a conservative display gate for model scores.
+
+    Numerical outputs are suppressed when the input is outside the supported
+    domain or when the classifier itself is indecisive.  This prevents a
+    precise-looking percentage from being mistaken for prospective evidence.
+    """
+    ad = applicability(values)
+    confidence = float(np.max(np.asarray(probabilities, dtype=float)))
+    supported = bool(ad["validity"]["reliable"] and ad["score"] >= 0.78)
+    decisive = confidence >= 0.55
+    return {
+        "show_scores": supported and decisive,
+        "confidence": confidence,
+        "status": "supported_relative_score" if supported and decisive else "abstain",
+        "message": (
+            "Relative historical-evidence scores; not a prospectively validated success probability."
+            if supported and decisive else
+            "Model abstention: input support or class separation is insufficient for a numerical interpretation."
+        ),
+    }
 
 
 NUMERIC_VALIDITY_COLUMNS = [
@@ -370,7 +393,8 @@ def explain_prediction(values):
 
     Each condition is varied independently across plausible values observed in the
     experimental database. The output is descriptive rather than causal: it shows
-    which editable parameters can most change P(crystalline) near the current input.
+    which editable parameters can most change the relative crystalline score near
+    the current input.
     """
     _, base_p, _ = predict(values)
     base_cryst = float(base_p[2])

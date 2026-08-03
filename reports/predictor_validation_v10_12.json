@@ -1,0 +1,76 @@
+{
+  "version": "10.12.0-audited-deleaked",
+  "training_records": 731,
+  "excluded_review_records": 347,
+  "class_distribution": {
+    "0": 60,
+    "1": 136,
+    "2": 535
+  },
+  "grouped_cv_by_canonical_ligand": {
+    "n": 731,
+    "accuracy": 0.8344733242134063,
+    "balanced_accuracy": 0.6030114226375908,
+    "macro_f1": 0.6630290125099814,
+    "mcc": 0.5638464168603613,
+    "log_loss": 0.47176587517284163,
+    "brier_multiclass": 0.2516841575201221,
+    "ece_10": 0.0654096768259775,
+    "recall_failed": 0.3333333333333333,
+    "recall_amorphous": 0.5,
+    "recall_crystalline": 0.9757009345794393,
+    "confusion_matrix": [
+      [
+        20,
+        6,
+        34
+      ],
+      [
+        3,
+        68,
+        65
+      ],
+      [
+        2,
+        11,
+        522
+      ]
+    ]
+  },
+  "held_out_laboratory_evaluation": {
+    "n": 17,
+    "accuracy": 0.7647058823529411,
+    "balanced_accuracy": 0.3333333333333333,
+    "macro_f1": 0.2888888888888889,
+    "mcc": 0.0,
+    "log_loss": 0.8444610106602921,
+    "brier_multiclass": 0.4843154957959798,
+    "ece_10": 0.25063429356262584,
+    "recall_failed": 0.0,
+    "recall_amorphous": 0.0,
+    "recall_crystalline": 1.0,
+    "confusion_matrix": [
+      [
+        0,
+        0,
+        3
+      ],
+      [
+        0,
+        0,
+        1
+      ],
+      [
+        0,
+        0,
+        13
+      ]
+    ]
+  },
+  "promotion_decision": "DEPLOY_WITH_ABSTENTION_AND_NON_PROBABILISTIC_LABEL",
+  "limitations": [
+    "Minority-class recall remains insufficient for autonomous experimental decisions.",
+    "Historical source DOI and row-level diffraction provenance remain incomplete.",
+    "Scores are shown only when the applicability and confidence gates pass."
+  ]
+}

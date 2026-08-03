@@ -7,7 +7,7 @@ ROOT=Path(__file__).resolve().parents[1]
 METALS=json.loads((ROOT/'models/metal_properties.json').read_text())
 
 COMMON_LIGAND_ALIASES={
- 'h2bdc':'terephthalic acid','bdc':'terephthalate / terephthalic acid','btc':'benzene-1,3,5-tricarboxylic acid',
+ 'h2bdc':'terephthalic acid','bdc':'terephthalic acid','btc':'benzene-1,3,5-tricarboxylic acid',
  'h3btc':'benzene-1,3,5-tricarboxylic acid','bpdc':'biphenyl-4,4-dicarboxylic acid','dobdc':'2,5-dihydroxyterephthalic acid',
  'bpy':'2,2-bipyridine','4,4-bpy':'4,4-bipyridine','bpz':'4,4-bipyrazole','h2bpz':'4,4-bipyrazole',
  'imidazole':'imidazole','2-methylimidazole':'2-methylimidazole','hmim':'2-methylimidazole','trimesic acid':'benzene-1,3,5-tricarboxylic acid'
@@ -92,6 +92,14 @@ MODEL_LIGAND_ALIASES={
  'dobdc':'2,5-Dihydroxyterephthalic acid (H4DOBDC)',
  'h4dobdc':'2,5-Dihydroxyterephthalic acid (H4DOBDC)',
  '2,5-dihydroxyterephthalic acid':'2,5-Dihydroxyterephthalic acid (H4DOBDC)',
+ '1,3-bdc':'Isophthalic acid (1,3-BDC)',
+ 'isophthalic acid':'Isophthalic acid (1,3-BDC)',
+ 'benzene-1,3-dicarboxylic acid':'Isophthalic acid (1,3-BDC)',
+ '1,3-benzenedicarboxylic acid':'Isophthalic acid (1,3-BDC)',
+ '1,2-bdc':'Phthalic acid (1,2-BDC)',
+ 'phthalic acid':'Phthalic acid (1,2-BDC)',
+ 'benzene-1,2-dicarboxylic acid':'Phthalic acid (1,2-BDC)',
+ '1,2-benzenedicarboxylic acid':'Phthalic acid (1,2-BDC)',
  'hmim':'2-Methylimidazole',
  '2-methylimidazole':'2-Methylimidazole',
 }
@@ -104,14 +112,17 @@ def canonicalize_ligand_for_model(text):
     the character n-gram model.
     """
     raw=' '.join(str(text or '').strip().split())
+    # A slash denotes a genuine mixed-linker formulation in the historical
+    # database (for example 2,6-NDC / H3BTC).  Never collapse the whole system
+    # to one component merely because an alias occurs as a substring.
+    if '/' in raw:
+        return raw
     parts=[p.strip().casefold() for p in raw.split('|') if p.strip()]
     for part in parts or [raw.casefold()]:
         if part in MODEL_LIGAND_ALIASES:
             return MODEL_LIGAND_ALIASES[part]
-    low=raw.casefold()
-    for alias, canonical in MODEL_LIGAND_ALIASES.items():
-        if re.search(r'(?<![a-z0-9])'+re.escape(alias)+r'(?![a-z0-9])',low):
-            return canonical
+    # Deliberately no substring matching here.  In particular, ``BDC`` inside
+    # ``1,3-BDC`` must not turn isophthalic acid into terephthalic acid.
     return raw
 
 def normalize_ligand(text):

@@ -14,7 +14,7 @@ from .vessel_conditions import vessel_requirement
 from .modulator_chemistry import modulator_compatibility
 from .solvent_miscibility import miscibility_check
 
-_SCHEMA_PATH = Path(__file__).resolve().parents[1] / "models" / "feature_schema_v8_0.json"
+_SCHEMA_PATH = Path(__file__).resolve().parents[1] / "models" / "feature_schema_v10_12.json"
 try:
     _NUMERIC_FEATURES = set(json.loads(_SCHEMA_PATH.read_text()).get("numeric", []))
 except Exception:
@@ -53,8 +53,8 @@ OBJECTIVES = {
         "feasibility": 0.10, "change": 0.03, "green": 0.19, "speed": 0.04,
     },
     "Fast synthesis": {
-        "p_crystalline": 0.36, "positive_support": 0.17, "domain": 0.14,
-        "feasibility": 0.10, "change": 0.025, "green": 0.05, "speed": 0.155,
+        "p_crystalline": 0.25, "positive_support": 0.14, "domain": 0.12,
+        "feasibility": 0.10, "change": 0.02, "green": 0.04, "speed": 0.33,
     },
 }
 
@@ -239,6 +239,12 @@ def _domain_score(db: pd.DataFrame, base: Dict[str, Any], candidates: pd.DataFra
     salts = set(db.get("Sale_Metallico", pd.Series(dtype=str)).astype(str))
     solvents = set(db.get("Solvente", pd.Series(dtype=str)).astype(str))
     additives = set(db.get("Additivo_Colinker", pd.Series(dtype=str)).fillna("Nessuno").astype(str))
+    exact = db[
+        db.get("Legante", pd.Series("", index=db.index)).astype(str).map(_norm).eq(ligand)
+        & db.get("Metallo", pd.Series("", index=db.index)).astype(str).eq(metal)
+    ].copy()
+    joint_numeric = ["Temperatura_C", "Tempo_ore", "Rapporto_LM", "Volume solvente"]
+    joint_categorical = ["Solvente", "Counterion_Class", "Additivo_Colinker"]
     scores = []
     for _, r in candidates.iterrows():
         s = 0.30 * float(ligand_seen) + 0.20 * float(metal_seen)
@@ -255,7 +261,30 @@ def _domain_score(db: pd.DataFrame, base: Dict[str, Any], candidates: pd.DataFra
                 distance = min(abs(val - lo), abs(val - hi)) / max(hi - lo, 1e-8)
                 numeric += max(0.0, 1.0 - distance)
         s += 0.15 * (numeric / 5.0)
-        scores.append(min(max(s, 0.0), 1.0))
+        marginal_score = min(max(s, 0.0), 1.0)
+        # Marginal feature presence is not enough to establish domain support.
+        # Require a nearby *joint* condition for the exact ligand-metal pair.
+        # If the exact pair is absent, cap the score even when every individual
+        # category appeared somewhere else in the database.
+        if exact.empty:
+            joint_score = 0.45 if ligand_seen and metal_seen else 0.25
+        else:
+            distances = np.zeros(len(exact), dtype=float)
+            weights_total = 0.0
+            for f in joint_numeric:
+                lo, hi = bounds[f]
+                scale = max(float(hi) - float(lo), 1e-8)
+                vals = pd.to_numeric(exact.get(f), errors="coerce").to_numpy(float)
+                component = np.where(np.isfinite(vals), np.abs(vals - float(r[f])) / scale, 1.0)
+                distances += np.minimum(component, 2.0)
+                weights_total += 1.0
+            for f in joint_categorical:
+                vals = exact.get(f, pd.Series("", index=exact.index)).fillna("").astype(str).map(_norm).to_numpy()
+                distances += 0.65 * (vals != _norm(r.get(f))).astype(float)
+                weights_total += 0.65
+            nearest = float(np.min(distances / max(weights_total, 1e-8)))
+            joint_score = float(np.exp(-2.2 * nearest))
+        scores.append(float(np.clip(0.45 * marginal_score + 0.55 * joint_score, 0.0, 1.0)))
     return np.asarray(scores, float)
 
 
@@ -283,6 +312,29 @@ def _select_positive_templates(positive_db: pd.DataFrame, base: Dict[str, Any]) 
     p.loc[p["Metallo"].astype(str).eq(metal), "_template_weight"] += 0.40
     p.loc[p["Legante"].astype(str).map(_norm).eq(ligand), "_template_weight"] += 0.38
     p.loc[p["Famiglia_Legante"].astype(str).map(_norm).eq(family), "_template_weight"] += 0.17
+    exact_pair = p[
+        p["Metallo"].astype(str).eq(metal)
+        & p["Legante"].astype(str).map(_norm).eq(ligand)
+    ].copy()
+    # Three independent condition templates are enough to define an
+    # identity-specific search neighbourhood.  Once that evidence exists,
+    # unrelated same-metal linkers must not outvote it by sheer row count.
+    if len(exact_pair) >= 3:
+        quality = pd.to_numeric(
+            exact_pair.get("Evidence_Weight", pd.Series(1.0, index=exact_pair.index)),
+            errors="coerce",
+        ).fillna(0.65)
+        exact_pair["_template_weight"] = quality.clip(0.05, 1.0)
+        return exact_pair.sort_values(
+            ["Evidence_Weight", "_template_weight"], ascending=False
+        ).reset_index(drop=True)
+    # Otherwise fall back gradually: same metal+family first, then same metal.
+    same_metal_family = p[
+        p["Metallo"].astype(str).eq(metal)
+        & p["Famiglia_Legante"].astype(str).map(_norm).eq(family)
+    ]
+    if len(same_metal_family) >= 8:
+        return same_metal_family.sort_values("_template_weight", ascending=False).head(500).reset_index(drop=True)
     # The metal is fixed by design. Prefer same-metal templates, but retain family analogues as fallback.
     same_metal = p[p["Metallo"].astype(str).eq(metal)]
     if len(same_metal) >= 8:
@@ -393,7 +445,16 @@ def _positive_support(positive_db: pd.DataFrame, base: Dict[str, Any], candidate
         out["Evidence_tier"] = "No positive library"
         return out
 
-    if positive_model is not None and all(k in positive_model for k in ["preprocessor", "nn", "reference"]):
+    exact_pair = positive_db[
+        positive_db.get("Metallo", pd.Series("", index=positive_db.index)).astype(str).eq(str(base.get("Metallo", "")))
+        & positive_db.get("Legante", pd.Series("", index=positive_db.index)).astype(str).map(_norm).eq(_norm(base.get("Legante")))
+    ]
+    # The legacy kNN artifact contains the pre-consolidation 694-row library.
+    # For systems with enough exact evidence, use the current deduplicated
+    # exact-pair records instead of letting duplicated or unrelated neighbours
+    # dominate the support score.
+    use_fitted_positive_model = positive_model is not None and len(exact_pair) < 3
+    if use_fitted_positive_model and all(k in positive_model for k in ["preprocessor", "nn", "reference"]):
         query = candidates.copy()
         # Ligand and family are fixed by design but may not be materialized in the candidate frame.
         for field in ["Legante", "Famiglia_Legante", "Metallo", "Procedura_Sintetica"]:
@@ -624,7 +685,12 @@ def joint_optimize(
     positive_scores = _positive_support(evidence_db, base, candidates, bounds, positive_model=positive_model)
     candidates = pd.concat([candidates, positive_scores], axis=1)
     candidates["Green_penalty"] = candidates["Solvente"].map(_green_penalty)
-    candidates["Speed_penalty"] = (np.clip(candidates["Temperatura_C"] / 220, 0, 1) + np.clip(np.log1p(candidates["Tempo_ore"]) / np.log1p(168), 0, 1)) / 2
+    # "Fast" is defined by elapsed reaction time. Temperature/resource burden
+    # is represented separately by the green objective; mixing the two allowed
+    # low-temperature but much longer reactions to win the fast objective.
+    candidates["Speed_penalty"] = np.clip(
+        np.log1p(candidates["Tempo_ore"]) / np.log1p(168), 0, 1
+    )
     ligand_smiles = base.get("Ligand_SMILES")
     candidates["Solubility_penalty"] = candidates["Solvente"].map(lambda s: solubility_penalty(ligand_smiles, s))
     solubility_warning = (
@@ -678,7 +744,7 @@ def joint_optimize(
     candidates["Total_concentration_mmol_mL"] = (candidates["mmol_Legante"] + candidates["mmol_Sale"]) / candidates["Volume solvente"]
     candidates["Objective"] = objective
     candidates["Recommendation_note"] = candidates.apply(
-        lambda r: f"{r['Evidence_tier']}; generated by {r['Generation_mode']}; balanced predictor P(crystalline)={r['P_Crystalline']:.1%}.", axis=1
+        lambda r: f"{r['Evidence_tier']}; generated by {r['Generation_mode']}; relative crystalline score={r['P_Crystalline']:.1%}.", axis=1
     )
 
     result = (candidates.sort_values(["Pareto_optimal", "Optimization_score", "P_Crystalline", "Positive_support_score", "AD_score"], ascending=[False, False, False, False, False])
@@ -698,7 +764,7 @@ def joint_optimize(
             if label not in strategy_labels[idx]:
                 strategy_labels[idx].append(label)
 
-        _add_label(result["P_Crystalline"].idxmax(), "Maximum probability")
+        _add_label(result["P_Crystalline"].idxmax(), "Maximum model score")
         _add_label(result["Optimization_score"].idxmax(), "Best hybrid score")
         _add_label(result["Positive_support_score"].idxmax(), "Strongest successful precedent")
         _add_label((result["Green_penalty"] + result["Speed_penalty"]).idxmin(), "Resource-conscious")
@@ -715,7 +781,7 @@ def joint_optimize(
         )
 
     metadata = {
-        "optimizer_version": "10.6.1",
+        "optimizer_version": "10.12.0",
         "warnings": [w for w in [solvent_warning, solubility_warning, miscibility_warning] if w],
         "objective": objective,
         "requested_samples": n_samples,
@@ -729,6 +795,10 @@ def joint_optimize(
         "fixed_variables": ["Legante", "Ligand_SMILES", "Famiglia_Legante", "Metallo"],
         "optimized_variables": ["Sale_Metallico", "Counterion_Class", "Hydration_Number", "Oxidation_State", "Solvente", "Additivo_Colinker", "Temperatura_C", "Tempo_ore", "mmol_Legante", "mmol_Sale", "Rapporto_LM", "Volume solvente"],
         "unsupported_not_optimized": ["pH", "solvent fractions", "modulator equivalents", "heating ramp", "cooling rate", "stirring", "addition order", "vessel filling fraction", "synthetic method"],
-        "model_scope": "Frozen balanced v8.0 outcome predictor plus a quality- and diversity-weighted conditional successful-synthesis recommendation model. Positive support is not interpreted as an absolute success probability.",
+        "model_scope": (
+            f"Audited leakage-resistant outcome model {model_artifact.get('version', 'unknown')} "
+            "plus an identity-first successful-synthesis recommendation layer. "
+            "Classifier outputs and positive support are relative ranking scores, not absolute success probabilities."
+        ),
     }
     return result, metadata

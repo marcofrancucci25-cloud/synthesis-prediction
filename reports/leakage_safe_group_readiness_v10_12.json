@@ -1,0 +1,8 @@
+{
+  "records": 146,
+  "leakage_safe_connected_groups": 4,
+  "largest_group_records": 90,
+  "five_fold_validation_viable": false,
+  "all_groups_multiclass": false,
+  "policy": "No DOI, ligand identity/scaffold surrogate or metal-linker pair may cross a fold boundary."
+}

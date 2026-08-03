@@ -422,3 +422,13 @@ inclusi 2 test end-to-end con risposta Tavily simulata (mock) che riproducono
 esattamente lo scenario "Toxin C2" segnalato — ora respinto — e confermano
 che un risultato genuinamente pertinente continua a funzionare. Nessuna
 regressione sulle 211 verifiche precedenti.
+## 10.12.0 — scientific hardening
+
+- Production predictor retrained without solvent volume or missingness indicators.
+- Excluded 347 audit-REVIEW records from fitting.
+- Added model abstention and relative-score language.
+- Fixed BDC positional-isomer and mixed-linker alias collapse.
+- Exact ligand-metal evidence now dominates optimizer templates and support.
+- Applicability now includes nearest joint-condition support.
+- Added leakage-safe future groups, a multiclass locked benchmark, DOI intake schema,
+  and prospective randomized validation plan.
