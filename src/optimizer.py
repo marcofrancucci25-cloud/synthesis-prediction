@@ -1,12 +1,34 @@
 from __future__ import annotations
 
 from typing import Any, Dict, List, Optional, Sequence, Tuple
+import json
 import re
+from pathlib import Path
 
 import numpy as np
 import pandas as pd
 
 from .chem import COUNTERIONS, build_row, precursor_formula
+
+_SCHEMA_PATH = Path(__file__).resolve().parents[1] / "models" / "feature_schema_v8_0.json"
+try:
+    _NUMERIC_FEATURES = set(json.loads(_SCHEMA_PATH.read_text()).get("numeric", []))
+except Exception:
+    _NUMERIC_FEATURES = set()
+
+
+def _coerce_numeric_features(x: pd.DataFrame, features: Sequence[str]) -> pd.DataFrame:
+    """Same defensive coercion used by the predictor (see src/engine.py).
+
+    Candidate rows are built programmatically here and are numeric by
+    construction, but this keeps the optimizer's scoring path exception-safe
+    against any future candidate-generation path that is not.
+    """
+    present = [c for c in features if c in _NUMERIC_FEATURES and c in x]
+    if present:
+        x = x.copy()
+        x.loc[:, present] = x.loc[:, present].apply(pd.to_numeric, errors="coerce")
+    return x
 
 
 OBJECTIVES = {
@@ -430,15 +452,60 @@ def joint_optimize(
     pool_db = metal_success if len(metal_success) >= 5 else source_for_pools
     solvents = _pool(pool_db, "Solvente", 22, [base.get("Solvente", "DMF")])
     additives = _pool(pool_db, "Additivo_Colinker", 16, [base.get("Additivo_Colinker", "Nessuno")])
-    if constraints.get("keep_solvent"):
-        solvents = [base.get("Solvente", "DMF")]
-    if constraints.get("keep_additive"):
-        additives = [base.get("Additivo_Colinker", "Nessuno")]
     allowed = constraints.get("allowed_solvents") or []
+    solvent_warning = None
     if allowed:
-        solvents = [s for s in solvents if any(_contains_solvent(s, a) for a in allowed)] or list(allowed)
+        matched_in_pool = [s for s in solvents if any(_contains_solvent(s, a) for a in allowed)]
+        if matched_in_pool:
+            solvents = matched_in_pool
+        else:
+            # None of the requested solvents appear in the metal-specific pool.
+            # Before falling back to the literal request, check whether they
+            # are recorded anywhere in the wider experimental evidence: a
+            # solvent that is simply rare for this metal is not the same as
+            # one with no experimental precedent at all.
+            known_solvents = set(db.get("Solvente", pd.Series(dtype=str)).dropna().astype(str))
+            if positive_db is not None and not positive_db.empty:
+                known_solvents |= set(positive_db.get("Solvente", pd.Series(dtype=str)).dropna().astype(str))
+            matched_known = [s for s in known_solvents if any(_contains_solvent(s, a) for a in allowed)]
+            if matched_known:
+                solvents = matched_known
+                solvent_warning = (
+                    "The requested allowed solvent(s) have no precedent for this specific metal; "
+                    "using matches found elsewhere in the experimental database instead."
+                )
+            else:
+                solvents = list(allowed)
+                solvent_warning = (
+                    "None of the requested allowed solvent(s) were found in any experimental record. "
+                    "The optimizer is proceeding with them as a literal, unvalidated request: treat the "
+                    "resulting proposals as unsupported by precedent, not as validated conditions."
+                )
     banned = constraints.get("banned_solvents") or []
     solvents = [s for s in solvents if not any(_contains_solvent(s, b) for b in banned)]
+
+    # "Keep the current solvent/additive" is an explicit, high-priority user
+    # request and must always win: it is applied last, after allowed/banned
+    # filtering, instead of being silently overridden by a later filter (as
+    # allowed_solvents used to do) or left to fail with a generic empty-pool
+    # error further downstream (as banned_solvents still correctly did).
+    # A genuine contradiction (the kept value is itself excluded) is now
+    # reported with a specific, actionable error message.
+    if constraints.get("keep_solvent"):
+        kept_solvent = base.get("Solvente", "DMF")
+        if allowed and not any(_contains_solvent(kept_solvent, a) for a in allowed):
+            raise ValueError(
+                f"'Keep current solvent' conflicts with the allowed-solvent constraint: "
+                f"'{kept_solvent}' is not among the allowed solvents requested."
+            )
+        if banned and any(_contains_solvent(kept_solvent, b) for b in banned):
+            raise ValueError(
+                f"'Keep current solvent' conflicts with the banned-solvent constraint: "
+                f"'{kept_solvent}' is on the banned-solvent list."
+            )
+        solvents = [kept_solvent]
+    if constraints.get("keep_additive"):
+        additives = [base.get("Additivo_Colinker", "Nessuno")]
     if not solvents:
         raise ValueError("No solvent remains after applying the selected constraints.")
 
@@ -478,6 +545,7 @@ def joint_optimize(
         if c not in engineered:
             engineered[c] = np.nan
     x = engineered[list(features)]
+    x = _coerce_numeric_features(x, features)
     probs = model_artifact["weights"][0] * model_artifact["rf_model"].predict_proba(x) + model_artifact["weights"][1] * model_artifact["ligand_text_model"].predict_proba(x)
     candidates["P_Failed"], candidates["P_Amorphous"], candidates["P_Crystalline"] = probs[:, 0], probs[:, 1], probs[:, 2]
     candidates["AD_score"] = _domain_score(db, base, candidates, bounds)
@@ -513,13 +581,27 @@ def joint_optimize(
     result.insert(0, "Rank", np.arange(1, len(result) + 1))
     result["Strategy"] = "Alternative"
     if len(result):
-        result.loc[result["P_Crystalline"].idxmax(), "Strategy"] = "Maximum probability"
-        result.loc[result["Optimization_score"].idxmax(), "Strategy"] = "Best hybrid score"
-        result.loc[result["Positive_support_score"].idxmax(), "Strategy"] = "Strongest successful precedent"
-        result.loc[(result["Green_penalty"] + result["Speed_penalty"]).idxmin(), "Strategy"] = "Resource-conscious"
+        # A single row can legitimately win more than one category (e.g. the
+        # best hybrid-score row can also be the least resource-intensive one).
+        # Labels are accumulated per row instead of being overwritten, so a
+        # later assignment never silently erases an earlier one.
+        strategy_labels: Dict[int, List[str]] = {}
+
+        def _add_label(idx: int, label: str) -> None:
+            strategy_labels.setdefault(idx, [])
+            if label not in strategy_labels[idx]:
+                strategy_labels[idx].append(label)
+
+        _add_label(result["P_Crystalline"].idxmax(), "Maximum probability")
+        _add_label(result["Optimization_score"].idxmax(), "Best hybrid score")
+        _add_label(result["Positive_support_score"].idxmax(), "Strongest successful precedent")
+        _add_label((result["Green_penalty"] + result["Speed_penalty"]).idxmin(), "Resource-conscious")
+        for idx, labels in strategy_labels.items():
+            result.loc[idx, "Strategy"] = " & ".join(labels)
 
     metadata = {
-        "optimizer_version": "10.6.0",
+        "optimizer_version": "10.6.1",
+        "warnings": [w for w in [solvent_warning] if w],
         "objective": objective,
         "requested_samples": n_samples,
         "feasible_candidates": int(len(candidates)),

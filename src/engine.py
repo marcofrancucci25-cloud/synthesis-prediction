@@ -1,6 +1,6 @@
 from pathlib import Path
 import json, joblib, numpy as np, pandas as pd
-from .chem import build_row, canonicalize_family, canonicalize_ligand_for_model, parse_salt
+from .chem import build_row, canonicalize_family, canonicalize_ligand_for_model, infer_family, parse_salt, FAMILIES
 from .optimizer import joint_optimize
 from .mof_registry import known_mof_matches
 ROOT=Path(__file__).resolve().parents[1]
@@ -113,11 +113,29 @@ def verified_precedents(values,n=5):
         })
     return pd.DataFrame(rows).sort_values(['_rank','_distance']).head(n).drop(columns=['_rank','_distance'])
 
+NUMERIC_MODEL_FEATURES = [c for c in SCHEMA.get('numeric', []) if c in FEATURES]
+
+def _coerce_numeric_features(x):
+    """Defensively coerce declared-numeric columns before they reach the model.
+
+    A stray non-numeric value (for example the literal string "unknown" for
+    an oxidation state, reached through any caller that does not pre-convert
+    it to None the way the Streamlit form does) must degrade to a missing
+    value handled by the model's own imputer, not raise an uncaught
+    exception that would crash the page.
+    """
+    present = [c for c in NUMERIC_MODEL_FEATURES if c in x]
+    if present:
+        x = x.copy()
+        x.loc[:, present] = x.loc[:, present].apply(pd.to_numeric, errors='coerce')
+    return x
+
 def predict(values):
     x=build_row(values)
     for c in FEATURES:
         if c not in x: x[c]=np.nan
     x=x[FEATURES]
+    x=_coerce_numeric_features(x)
     p=ART['weights'][0]*ART['rf_model'].predict_proba(x)+ART['weights'][1]*ART['ligand_text_model'].predict_proba(x)
     return x, p[0], int(np.argmax(p[0]))
 
@@ -209,6 +227,24 @@ def prediction_validity(values):
         label="Within validated experimental range"; reliable=True
     return {"score":score,"label":label,"reliable":reliable,"issues":issues,"details":details}
 
+def _family_consistency(values):
+    """Flag a declared ligand family that disagrees with the ligand's own name.
+
+    ``Famiglia_Legante`` is a user-editable selector in the UI: nothing
+    upstream guarantees it still matches the ligand once the field is
+    changed. Since the family is a model-facing feature, an unnoticed
+    mismatch can shift the predicted outcome substantially without any
+    signal to the user. The check only fires when the declared value is one
+    of the public UI family labels and the name-based heuristic reached a
+    confident (non-"Other/unknown") conclusion, to avoid false positives on
+    values coming from other, non-UI callers.
+    """
+    declared=str(values.get('Famiglia_Legante') or '').strip()
+    inferred=infer_family(values.get('Legante',''))
+    if declared not in FAMILIES or inferred=='Other/unknown':
+        return False, declared, inferred
+    return declared!=inferred, declared, inferred
+
 def applicability(values):
     ligand=canonicalize_ligand_for_model(values.get('Legante','')).casefold(); metal=str(values.get('Metallo','')); salt=str(values.get('Sale_Metallico',''))
     training_ligands=set(TRAINING_DB['Legante'].map(canonicalize_ligand_for_model).astype(str).str.casefold())
@@ -217,13 +253,20 @@ def applicability(values):
     seen_salt=salt in set(TRAINING_DB['Sale_Metallico'].astype(str))
     identity_score=0.50*seen_lig+0.30*seen_metal+0.20*seen_salt
     validity=prediction_validity(values)
+    family_mismatch,declared_family,inferred_family=_family_consistency(values)
     # Identity support and numerical support are both required. A high categorical
-    # match cannot mask an extreme experimental condition.
+    # match cannot mask an extreme experimental condition. A declared family that
+    # disagrees with the ligand's own name is treated the same way: it caps how
+    # confidently the input can be called "inside domain".
     score=float(0.60*identity_score+0.40*validity['score'])
-    if score>=0.78 and validity['reliable']: label='Inside domain'
+    if family_mismatch:
+        score=float(score*0.85)
+    if score>=0.78 and validity['reliable'] and not family_mismatch: label='Inside domain'
     elif score>=0.38 and validity['label']!='Outside validated experimental range': label='Intermediate / partial extrapolation'
     else: label='Outside domain'
-    return {'score':score,'label':label,'ligand_seen':seen_lig,'metal_seen':seen_metal,'salt_seen':seen_salt,'identity_score':float(identity_score),'validity':validity}
+    return {'score':score,'label':label,'ligand_seen':seen_lig,'metal_seen':seen_metal,'salt_seen':seen_salt,
+            'identity_score':float(identity_score),'validity':validity,'family_mismatch':family_mismatch,
+            'declared_family':declared_family,'inferred_family':inferred_family}
 
 def similar(values,n=15):
     d=EVIDENCE_DB.copy(); metal=str(values.get('Metallo','')); fam=canonicalize_family(values.get('Famiglia_Legante',''),values.get('Legante',''))
