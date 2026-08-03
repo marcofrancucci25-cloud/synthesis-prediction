@@ -9,6 +9,7 @@ import numpy as np
 import pandas as pd
 
 from .chem import COUNTERIONS, build_row, precursor_formula
+from .solubility import solubility_penalty
 
 _SCHEMA_PATH = Path(__file__).resolve().parents[1] / "models" / "feature_schema_v8_0.json"
 try:
@@ -62,6 +63,34 @@ SOLVENT_GREEN_PENALTY = {
     "nmp": 0.60, "thf": 0.35, "toluene": 0.48, "dichloromethane": 0.75,
     "ch2cl2": 0.75, "chloroform": 0.80,
 }
+
+# A ligand/solvent pair with no evident solubility is not a physically valid
+# proposal regardless of objective, so every objective gets a non-zero
+# solubility weight, unlike green/speed which some objectives intentionally
+# set to 0. Raw (pre-normalization) target weights below; see
+# _normalize_objective_weights for how they are folded in.
+_SOLUBILITY_WEIGHT_RAW = {
+    "Maximum crystallinity": 0.15,
+    "Balanced conditions": 0.16,
+    "Conservative optimization": 0.14,
+    "Green synthesis": 0.14,
+    "Fast synthesis": 0.14,
+}
+
+
+def _normalize_objective_weights() -> None:
+    """Add the solubility weight to each objective and rescale so weights
+    keep summing to 1.0, instead of hand-recomputing every objective by hand
+    (and risking an arithmetic slip in one of the five)."""
+    for name, weight_map in OBJECTIVES.items():
+        weight_map["solubility"] = _SOLUBILITY_WEIGHT_RAW[name]
+        total = sum(weight_map.values())
+        if total > 0:
+            for key in weight_map:
+                weight_map[key] = weight_map[key] / total
+
+
+_normalize_objective_weights()
 
 
 def _norm(x: Any) -> str:
@@ -553,6 +582,12 @@ def joint_optimize(
     candidates = pd.concat([candidates, positive_scores], axis=1)
     candidates["Green_penalty"] = candidates["Solvente"].map(_green_penalty)
     candidates["Speed_penalty"] = (np.clip(candidates["Temperatura_C"] / 220, 0, 1) + np.clip(np.log1p(candidates["Tempo_ore"]) / np.log1p(168), 0, 1)) / 2
+    ligand_smiles = base.get("Ligand_SMILES")
+    candidates["Solubility_penalty"] = candidates["Solvente"].map(lambda s: solubility_penalty(ligand_smiles, s))
+    solubility_warning = (
+        "No resolved ligand structure (SMILES) was available, so the new solubility screen could not run: "
+        "solvent choice is not being checked against ligand solubility for this ligand."
+    ) if not ligand_smiles else None
     candidates["Change_penalty"] = [_change_penalty(base, r, bounds) for _, r in candidates.iterrows()]
     candidates["Optimization_score"] = (
         weights["p_crystalline"] * candidates["P_Crystalline"] +
@@ -561,13 +596,15 @@ def joint_optimize(
         weights["feasibility"] * candidates["Feasibility_score"] -
         weights["change"] * candidates["Change_penalty"] -
         weights["green"] * candidates["Green_penalty"] -
-        weights["speed"] * candidates["Speed_penalty"]
+        weights["speed"] * candidates["Speed_penalty"] -
+        weights["solubility"] * candidates["Solubility_penalty"]
     )
 
     candidates["Pareto_optimal"] = _nondominated(candidates, [
         ("P_Crystalline", True), ("Positive_support_score", True),
         ("AD_score", True), ("Feasibility_score", True),
         ("Green_penalty", False), ("Speed_penalty", False), ("Change_penalty", False),
+        ("Solubility_penalty", False),
     ])
     candidates["Total_concentration_mmol_mL"] = (candidates["mmol_Legante"] + candidates["mmol_Sale"]) / candidates["Volume solvente"]
     candidates["Objective"] = objective
@@ -601,7 +638,7 @@ def joint_optimize(
 
     metadata = {
         "optimizer_version": "10.6.1",
-        "warnings": [w for w in [solvent_warning] if w],
+        "warnings": [w for w in [solvent_warning, solubility_warning] if w],
         "objective": objective,
         "requested_samples": n_samples,
         "feasible_candidates": int(len(candidates)),

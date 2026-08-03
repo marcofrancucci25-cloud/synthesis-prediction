@@ -1,6 +1,7 @@
 from pathlib import Path
 import json, joblib, numpy as np, pandas as pd
 from .chem import build_row, canonicalize_family, canonicalize_ligand_for_model, infer_family, parse_salt, FAMILIES
+from .solubility import describe as _solubility_describe
 from .optimizer import joint_optimize
 from .mof_registry import known_mof_matches
 ROOT=Path(__file__).resolve().parents[1]
@@ -264,9 +265,15 @@ def applicability(values):
     if score>=0.78 and validity['reliable'] and not family_mismatch: label='Inside domain'
     elif score>=0.38 and validity['label']!='Outside validated experimental range': label='Intermediate / partial extrapolation'
     else: label='Outside domain'
+    # Solubility is a physical-chemistry check, deliberately kept separate from
+    # the applicability-domain score above: AD measures how far the *model*
+    # is extrapolating, not whether the proposed chemistry is physically
+    # sound. See src/solubility.py for what this estimate can and cannot
+    # detect (it is a coarse screen, not a substitute for chemical judgment).
+    solubility=_solubility_describe(values.get('Ligand_SMILES'), values.get('Solvente',''))
     return {'score':score,'label':label,'ligand_seen':seen_lig,'metal_seen':seen_metal,'salt_seen':seen_salt,
             'identity_score':float(identity_score),'validity':validity,'family_mismatch':family_mismatch,
-            'declared_family':declared_family,'inferred_family':inferred_family}
+            'declared_family':declared_family,'inferred_family':inferred_family,'solubility':solubility}
 
 def similar(values,n=15):
     d=EVIDENCE_DB.copy(); metal=str(values.get('Metallo','')); fam=canonicalize_family(values.get('Famiglia_Legante',''),values.get('Legante',''))
