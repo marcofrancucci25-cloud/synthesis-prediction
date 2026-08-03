@@ -376,3 +376,49 @@ diverse — confermato nei metadata restituiti. Combinazioni mai osservate
 (es. Ce+Phosphonate) ricadono correttamente sul livello meno specifico,
 senza crash. 8 nuovi test dedicati (`test_metal_family_bounds_feature.py`),
 tutti PASS. Nessuna regressione sulle 203 verifiche precedenti.
+
+## 14. [BUG, priorità Alta] Il resolver del legante poteva proporre strutture completamente estranee
+**File:** `src/literature.py`
+Segnalato dall'utente con due screenshot dell'app live: cercando "3,3'-amino-
+4,4'-bipyrazole", il resolver ha proposto come candidato **"Toxin C2"**
+(C10H17N7O11S2, un derivato dell'acido solfamico) — una struttura senza
+alcuna relazione con un bipirazolo.
+
+**Causa radice:** quando OPSIN, PubChem e Cactus non trovano nulla, l'app
+usa Tavily (motore di ricerca generico, non specializzato in chimica) come
+ultima risorsa per "scoprire identificatori alternativi": cerca la query sul
+web e cerca di estrarre numeri CAS, abbreviazioni tra parentesi e stringhe
+tra virgolette da fino a 8 risultati. **Il problema**: estraeva questi
+pattern da **qualunque punto** del testo di ciascun risultato, senza mai
+verificare che quel testo parlasse davvero del legante cercato. Una pagina
+web irrilevante che per puro caso conteneva sia la parola "amino" (in un
+contesto completamente diverso) sia un nome tra parentesi che PubChem sa
+risolvere in una molecola vera, veniva presentata come "candidato" con tanto
+di nome IUPAC, formula e struttura disegnata — dando un'apparenza di
+affidabilità del tutto ingannevole.
+
+**Fix:** nuovo controllo di pertinenza (`_result_is_relevant`): un risultato
+di ricerca deve contenere almeno il 60% delle parole distintive della query
+(escludendo termini generici come "ligand"/"MOF"/"linker" iniettati nella
+query di ricerca stessa, e numeri/locanti nudi come "3"/"4" perché troppo
+comuni per essere un segnale utile) prima che qualunque identificatore
+estratto da quel testo venga considerato attendibile. Usa il confronto per
+sottostringa (non l'uguaglianza esatta tra parole), per riconoscere
+correttamente varianti come "diamino"/"monoamino" che contengono "amino".
+
+**Nota separata, non risolta qui:** i due nomi provati dall'utente sembrano
+riferirsi alla variante **di-amino** del bipirazolo (due gruppi NH2), mentre
+la libreria curata locale (`LOCAL_STRUCTURES`) contiene solo la variante
+**mono-amino** (un gruppo NH2, "3-amino-4,4'-bipyrazole", C6H7N5). Ho
+cercato una fonte affidabile per verificare la struttura della variante
+di-amino prima di aggiungerla, ma non ho trovato un riscontro autorevole
+(nessun CAS/PubChem chiaro) — non l'ho quindi inserita a mano: una struttura
+"curata" ma non verificata sarebbe rischiosa quanto il bug stesso. Se l'utente
+può confermare la struttura esatta (da un articolo specifico), può essere
+aggiunta correttamente seguendo lo stesso schema della voce già presente.
+
+**Verificato:** 8 nuovi test dedicati (`test_ligand_resolver_relevance_feature.py`),
+inclusi 2 test end-to-end con risposta Tavily simulata (mock) che riproducono
+esattamente lo scenario "Toxin C2" segnalato — ora respinto — e confermano
+che un risultato genuinamente pertinente continua a funzionare. Nessuna
+regressione sulle 211 verifiche precedenti.
