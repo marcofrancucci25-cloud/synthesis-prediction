@@ -59,7 +59,7 @@ APP_VERSION = "10.11.2"
 
 st.set_page_config(page_title="MOF Synthesis Assistant", page_icon="🧪", layout="wide")
 st.title("🧪 MOF Synthesis Assistant v10.11.2")
-st.caption("Version 10.11.3 · Ligand/solvent solubility screening (RDKit/ESOL); literature search reset control and reformatted results")
+st.caption("Version 10.11.8 · Numeric bounds now metal+ligand-family specific (four-tier cascade); miscibility, pKa, solubility & vessel-condition checks")
 st.caption("Prediction evaluates the exact entered conditions. Optimization separately combines three-class risk, successful precedents, feasibility and applicability while keeping only ligand and metal fixed.")
 page = st.sidebar.radio("Module", ["Predict synthesis", "Literature search", "About"])
 
@@ -472,6 +472,21 @@ def render_prediction(result):
         st.warning(f"The selected solvent (water) is estimated to be a poor match for this ligand (ESOL estimated log S ≈ {solubility.get('logS_water'):.1f}, water). This is a computed screening estimate (RDKit/ESOL), not a lab measurement — verify experimentally, especially for rigid symmetric aromatic acids where this estimate is known to be optimistic.")
     elif solubility.get('solubility_penalty',0) > 0.5:
         st.warning("The selected solvent is estimated to be a chemically poor match for this ligand's polarity (computed screening estimate, not a lab measurement). Consider a less/more polar alternative or verify solubility experimentally.")
+    vessel=ad.get('vessel') or {}
+    if vessel.get('requires_sealed_vessel'):
+        st.info(f"Vessel note: {vessel.get('note')}")
+    if ad.get('vessel_mismatch'):
+        st.warning(f"Declared synthesis procedure (\"{values.get('Procedura_Sintetica')}\") is inconsistent with the entered temperature: {vessel.get('note')} Verify this is intentional.")
+    modulator=ad.get('modulator') or {}
+    if modulator.get('checked'):
+        st.info(f"Modulator note: {modulator.get('note')}")
+    elif modulator.get('role') not in (None, 'none'):
+        st.caption(f"Modulator note: {modulator.get('note')}")
+    miscibility=ad.get('miscibility') or {}
+    if miscibility.get('flag')=='immiscible':
+        st.warning(f"Solvent mixture note: {miscibility.get('note')}")
+    elif miscibility.get('flag')=='partially_miscible':
+        st.info(f"Solvent mixture note: {miscibility.get('note')}")
     st.subheader("Hybrid joint synthesis optimizer")
     st.caption("Prediction and optimization are separate. The optimizer keeps only ligand and metal fixed, generates coherent condition sets from successful precedents, explores new combinations, and re-scores every proposal with the balanced three-class predictor.")
     with st.expander("Configure multivariable optimization", expanded=pcr < 0.65):
@@ -519,10 +534,23 @@ def render_prediction(result):
         b.metric("Best proposed",f"{best:.1%}")
         c.metric("Expected improvement",f"{best-pcr:+.1%}")
         d.metric("Feasible candidates searched",f"{(meta or {}).get('feasible_candidates',len(out)):,}")
+        n_metal_rows=(meta or {}).get('metal_specific_evidence_rows',0)
+        n_metal_family_rows=(meta or {}).get('metal_family_specific_evidence_rows',0)
+        if n_metal_family_rows >= 10:
+            st.caption(f"Numeric ranges (temperature/time/ratio/volume/hydration/oxidation state) are informed by {n_metal_family_rows} records for this specific metal+ligand-family combination, not just the dataset-wide distribution.")
+        elif n_metal_rows < 10:
+            st.caption(f"Note: only {n_metal_rows} metal-specific evidence row(s) were available for this metal, so temperature/time/ratio/volume/hydration/oxidation-state ranges fall back to the dataset-wide distribution rather than this metal's own typical conditions.")
         for warning_text in (meta or {}).get('warnings', []):
             st.warning(warning_text)
         if "Solubility_penalty" in out.columns and out["Solubility_penalty"].max() > 0.5:
             st.caption("Note: proposals are ranked with an estimated ligand/solvent solubility penalty (RDKit/ESOL-based screening, see the 'Solubility_penalty' column) — lower is better. It is a computed estimate, not a lab measurement.")
+        if "Requires_Sealed_Vessel" in out.columns and out["Requires_Sealed_Vessel"].fillna(False).any():
+            n_sealed = int(out["Requires_Sealed_Vessel"].fillna(False).sum())
+            st.caption(f"Note: {n_sealed} of {len(out)} proposals are at/above the solvent's estimated boiling point ('Requires_Sealed_Vessel' column) — these need a sealed autoclave/vial (solvothermal), not open-vessel reflux. This is informational, not a penalty: solvothermal synthesis is normal and often preferable.")
+        if "Modulator_Note" in out.columns and (out["Modulator_Note"] == "modulator_too_weak").any():
+            st.caption("Note: for some proposals ('Modulator_Note' column = 'modulator_too_weak'), the chosen additive is estimated to be a weaker acid than typical for this ligand family and may compete only weakly for coordination sites. This is a coarse, family-level pKa estimate, not a penalty on the ranking — see CHANGELOG_FIXES.md for its limitations.")
+        if "Miscibility_Flag" in out.columns and (out["Miscibility_Flag"] == "partially_miscible").any():
+            st.caption("Note: some proposals use a water/solvent combination with only limited mutual solubility ('Miscibility_Flag' column = 'partially_miscible') and may separate into two phases depending on the exact ratio used.")
         # Keep internal recommendation metadata available for downloads and scientific
         # diagnostics, but present researchers with only the five strongest, directly
         # actionable experimental proposals.
@@ -643,6 +671,6 @@ elif page=="Literature search":
         )
 else:
     st.markdown("""### Scope and scientific limitations
-Version 10.11.3 adds an RDKit/ESOL-based ligand/solvent solubility screen (a heuristic penalty layered on the optimizer's scoring, not a trained model feature; see CHANGELOG_FIXES.md for its known limitations on rigid symmetric aromatic acids) and reworks the literature search page (a reset control next to the search action, and results reordered as title, DOI, then abstract). It also carries forward: canonical public ligand families and common linker aliases before prediction, verified laboratory or literature precedents reported independently from model probabilities, oxidation-state-aware HSAB labels on the metal selector, exact curated metal–linker pairs with DOI-derived article links, and stoichiometrically coherent, domain-filtered local L:M sensitivity. The provenance-first v11 gold dataset contains 179 records, including a 90-experiment HKUST-1 campaign with its continuous PXRD-derived score and ten directly designated high-crystallinity MOF-321/MOF-322 protocols. Training candidates and the external benchmark remain separated at DOI level. Framework names are literature candidates, never structural identification from composition alone.
+Version 10.11.8 extends the metal-specific numeric-range cascade introduced in 10.11.7 to a four-tier chain that also conditions on ligand family within a metal (metal+family -> metal -> whole dataset -> hardcoded default), after confirming a real gap in the historical data (e.g. Zn+Bipyrazole ~160 degC median vs Zn with an unclassified family ~100 degC) -- see CHANGELOG_FIXES.md. It also carries forward the four-part optimizer chemistry-screening set: water/nonpolar-solvent miscibility, modulator/ligand pKa compatibility (a canonicalization bug was found and fixed during development), temperature/solvent/vessel-type physical consistency, and RDKit/ESOL-based ligand/solvent solubility (10.11.3-10.11.6; heuristic layers on top of the optimizer's scoring/output, not trained model features; only solubility is folded into the ranking score). It also carries forward the reworked literature search page (reset control, results reordered as title, DOI, then abstract), canonical public ligand families and common linker aliases before prediction, verified laboratory or literature precedents reported independently from model probabilities, oxidation-state-aware HSAB labels on the metal selector, exact curated metal–linker pairs with DOI-derived article links, and stoichiometrically coherent, domain-filtered local L:M sensitivity. The provenance-first v11 gold dataset contains 179 records, including a 90-experiment HKUST-1 campaign with its continuous PXRD-derived score and ten directly designated high-crystallinity MOF-321/MOF-322 protocols. Training candidates and the external benchmark remain separated at DOI level. Framework names are literature candidates, never structural identification from composition alone.
 
 The explanation is **model-based and descriptive, not causal**. Optimized conditions are hypotheses for experimental prioritization, not guarantees of MOF formation. The predictive core remains the validated frozen v8.0 ensemble: two retraining candidates were rejected because their gain in crystalline recall reduced three-class specificity. The v11 foundation is not activated for training because its eligible records still lack sufficient independent-source and minority-class coverage; verified evidence is therefore displayed separately rather than being converted into an uncalibrated probability.""")

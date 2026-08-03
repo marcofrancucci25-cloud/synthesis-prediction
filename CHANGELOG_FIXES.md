@@ -187,3 +187,192 @@ Richiesto dall'utente. Due modifiche alla pagina "Literature search":
 verificano la presenza del pulsante di reset, l'ordine esatto titolo→DOI→abstract
 nel sorgente, e l'uso dell'escaping HTML. Nessuna regressione sulle 141
 verifiche precedenti (61 test ufficiali + 47 + 13 + 20).
+
+## 9. [NUOVA FUNZIONALITÀ] Coerenza fisica temperatura/solvente/tipo di vaso
+**File:** `src/vessel_conditions.py` (nuovo), `src/engine.py`, `src/optimizer.py`, `app.py`
+Primo elemento della lista di "prossimi parametri per l'ottimizzatore"
+discussa con l'utente. Fino a ora, l'ottimizzatore poteva proporre una
+temperatura superiore al punto di ebollizione del solvente scelto (es. 150°C
+in acqua) senza mai segnalare che questo richiede un vaso sigillato
+(autoclave/vial solvotermico), non un pallone a riflusso aperto.
+
+**Implementazione:**
+- Punti di ebollizione normali (1 atm) tabulati per i solventi già usati
+  nell'app; per le miscele (34% dei record storici, es. "DMF/H2O") si usa
+  conservativamente il componente col punto di ebollizione più basso.
+- Nuova colonna informativa `Requires_Sealed_Vessel` nei risultati
+  dell'ottimizzatore. **Deliberatamente NON penalizza** `Optimization_score`:
+  una sintesi solvotermica non è un difetto, è anzi il metodo più comune e
+  spesso preferibile per i MOF — è solo un'informazione che serve per
+  scegliere la vetreria giusta.
+- Nella singola predizione, riutilizzato lo stesso pattern del controllo
+  famiglia/legante già esistente: se l'utente dichiara esplicitamente
+  `Procedura_Sintetica = "Room Temperature"` o `"Precipitation"` ma la
+  temperatura inserita supera il punto di ebollizione del solvente scelto,
+  viene mostrato un avviso di incoerenza tra i due campi dichiarati (non
+  tocca il punteggio di dominio di applicabilità, che misura
+  l'estrapolazione del modello, non la coerenza fisica dell'input).
+- Solvente sconosciuto o temperatura mancante → `requires_sealed_vessel=None`
+  (non `False`): l'assenza di dati non diventa mai un falso "va tutto bene".
+
+**Verificato:** 17 nuovi test dedicati (`test_vessel_conditions_feature.py`),
+tutti PASS. Nessuna regressione sulle 158 verifiche precedenti (64 test
+ufficiali + 47 + 13 + 20).
+
+## 10. [NUOVA FUNZIONALITÀ] Compatibilità pKa modulatore/legante ("modulazione competitiva")
+**File:** `src/modulator_chemistry.py` (nuovo), `src/engine.py`, `src/optimizer.py`, `app.py`
+Secondo elemento della lista discussa con l'utente. Nella sintesi modulata di
+MOF, un acido monotopico (es. acido acetico, benzoico) compete col legante
+per i siti di coordinazione, rallentando la nucleazione — ma perché funzioni
+serve un'acidità comparabile tra modulatore e legante. Fino a ora l'additivo
+era scelto dall'ottimizzatore solo per frequenza storica, senza alcun
+controllo chimico.
+
+**Implementazione (deliberatamente più cauta di solubilità e vaso di reazione):**
+- pKa reali e tabulati per i modulatori/additivi effettivamente presenti nei
+  dati (acido acetico 4.76, benzoico 4.20, formico 3.75, TFA 0.3, HCl/HNO3
+  come acidi forti). Distingue esplicitamente i ruoli: modulatore acido,
+  base (es. trietilammina — deprotona, non compete), co-legante (es. BDC/BTC
+  usati come secondo linker, non come modulatore), additivo inerte.
+- pKa rappresentativo per famiglia di legante (non per il legante specifico:
+  nessun predittore di pKa da SMILES è disponibile in questo ambiente),
+  con valori di letteratura per membri tipici di ciascuna famiglia.
+- **Bug trovato e corretto durante lo sviluppo, prima della consegna**: il
+  campo Famiglia_Legante arriva all'ottimizzatore già canonicalizzato al
+  vocabolario interno di training (es. "Carbossilati aromatici"), non
+  all'etichetta pubblica ("Carboxylate") — la tabella dei pKa inizialmente
+  non lo gestiva, producendo silenziosamente solo il "ruolo" del modulatore
+  senza mai calcolare il verdetto vero. Risolto riutilizzando
+  `chem.canonicalize_family()` (la stessa funzione già usata da `build_row`)
+  invece di duplicare la mappatura, così le due rappresentazioni restano
+  sempre sincronizzate. Aggiunto un test di regressione dedicato.
+- **Puramente informativo, mai una penalità nel punteggio**: a differenza
+  della solubilità, qui la scienza è più qualitativa (guida di letteratura,
+  non una legge fisica) e il pKa del legante è solo un'approssimazione per
+  famiglia — sarebbe scorretto trattarla come un fattore di ranking con lo
+  stesso peso di un dato fisico reale.
+
+**Verificato:** 16 test dedicati (`test_modulator_chemistry_feature.py`),
+tutti PASS, incluso un test di non-regressione sul bug di canonicalizzazione.
+Nessuna regressione sulle 161 verifiche precedenti (64 test ufficiali + 47 +
+13 + 20 + 17).
+
+## 11. [NUOVA FUNZIONALITÀ] Screening di miscibilità acqua/solvente nelle miscele
+**File:** `src/solvent_miscibility.py` (nuovo), `src/engine.py`, `src/optimizer.py`, `app.py`
+Quarto e ultimo elemento della lista discussa con l'utente. Prima di
+implementarlo, verificato che il pool storico di solventi campionato
+dall'ottimizzatore (`_pool()`) attinge **solo** da stringhe già osservate nei
+dati, mai combinazioni sintetizzate combinatorialmente — controllate tutte
+le 23 miscele uniche presenti nei dati storici (DMF/H2O, H2O/EtOH,
+MeOH/Toluene, ecc.): sono tutte chimicamente sensate. Il rischio reale è il
+campo **Solvente in testo libero** della predizione singola, dove nulla
+impedisce di scrivere una miscela come "Water/Toluene" che si separerebbe
+in due fasi.
+
+**Implementazione (portata deliberatamente stretta):**
+- Controlla solo il caso acqua + solvente classicamente non miscibile
+  (toluene, esano/eptano, diclorometano, cloroformio — le coppie bifasiche
+  con acqua da manuale di chimica generale), più acetato di etile come
+  "parzialmente miscibile" (caso più sfumato, messaggio più tenue).
+  **Non** è una matrice di miscibilità completa: una coppia non segnalata
+  significa "non è uno dei problemi noti controllati qui", non "confermata
+  miscibile" — dichiarato esplicitamente nel codice.
+- Colonna informativa `Miscibility_Flag` nei risultati dell'ottimizzatore.
+  A differenza degli altri controlli informativi (vaso, modulatore), qui
+  l'immiscibilità è un fatto fisico difficilmente discutibile (non un
+  giudizio qualitativo): se una proposta genuinamente immiscibile sopravvive
+  fino ai risultati finali, viene aggiunto anche un avviso esplicito in
+  `metadata["warnings"]`, non lasciato solo come colonna da notare.
+- Verificato che nel funzionamento normale (pool storico) questo avviso non
+  scatta mai; scatta correttamente quando forzato tramite `keep_solvent` su
+  un caso di test con "Water/Toluene".
+
+**Verificato:** 17 nuovi test dedicati (`test_solvent_miscibility_feature.py`),
+tutti PASS, incluso un test end-to-end che conferma la comparsa
+dell'avviso esplicito. Nessuna regressione sulle 177 verifiche precedenti
+(64 test ufficiali + 47 + 13 + 20 + 17 + 16).
+
+---
+
+## Riepilogo dei quattro parametri aggiunti all'ottimizzatore (voci 7-11)
+| # | Parametro | Tipo di controllo | Penalizza il punteggio? |
+|---|---|---|---|
+| 1 | Solubilità legante/solvente (ESOL) | Quantitativo, letteratura consolidata | Sì (fisica reale) |
+| 2 | Temperatura vs punto di ebollizione | Quantitativo, dati tabulati | No (informativo) |
+| 3 | pKa modulatore/legante | Qualitativo, guida di letteratura | No (informativo) |
+| 4 | Miscibilità acqua/solvente | Qualitativo mirato, casi classici | No, ma avviso esplicito se sopravvive ai risultati finali |
+
+## 12. [MIGLIORAMENTO STRUTTURALE] Range numerici specifici per metallo, non più globali
+**File:** `src/optimizer.py`, `app.py`
+Richiesto dall'utente: "l'ottimizzatore impara meglio a valutare i parametri
+di sintesi? nei MOF non sono tutti uguali". Verifica preliminare: i range
+di temperatura/tempo/rapporto/volume/idratazione/stato di ossidazione che
+l'ottimizzatore campiona per generare candidati venivano calcolati
+sull'**intero dataset storico**, senza mai filtrare per il metallo
+specifico in ottimizzazione — a differenza del pool di solventi/additivi,
+che già era filtrato per metallo. Dati reali per confermare la gravità:
+- **Stato di ossidazione**: Zn è sempre +2, Al sempre +3, Fe sempre +3 nei
+  precursori usati; il range globale (2,0–4,0) permetteva quindi
+  all'ottimizzatore di proporre stati di ossidazione chimicamente
+  implausibili per un metallo specifico (es. Al a stato +2).
+- **Numero di idratazione**: mediana 9 per Al, 1 per Cu, 0 per Zr — molto
+  diversi tra loro; il range globale (mediana 4) non rappresentava bene
+  nessuno dei tre.
+- **Volume solvente**: per Zr era sempre 100 (protocollo fisso), per Al/Fe
+  il dato non è nemmeno popolato — casi che richiedono una cascata di
+  fallback sicura, non solo un filtro naïve.
+
+**Implementazione:** `_quantile_bounds()` (già esistente) ricade
+automaticamente sul suo argomento di fallback quando una colonna ha meno di
+10 valori validi. Sfruttando questo comportamento già presente, i range ora
+vengono calcolati con una cascata a tre livelli — dati specifici del
+metallo → intero dataset (il comportamento precedente) → valore fisso di
+sicurezza — senza dover modificare la funzione stessa. Stesso principio già
+usato per il pool di solventi/additivi (`metal_success`/`pool_db`), esteso
+qui ai range numerici per coerenza architetturale.
+**Trasparenza:** nuovo campo `metal_specific_evidence_rows` nei metadata,
+mostrato in interfaccia con un avviso quando i dati specifici del metallo
+sono insufficienti (<10 righe) e i range ricadono sul dataset globale.
+
+**Verificato con un test end-to-end concreto:** per Al, lo stato di
+ossidazione proposto ora è sempre 3 (mai più 2), e la mediana del numero di
+idratazione (9) riflette correttamente la chimica dell'alluminio invece del
+valore globale. 9 nuovi test dedicati
+(`test_metal_specific_bounds_feature.py`), tutti PASS. Nessuna regressione
+sulle 194 verifiche precedenti.
+
+**Portata dichiarata:** questa modifica condiziona i range solo per
+**metallo**, non per la combinazione metallo+famiglia di legante — un
+ulteriore livello di specificità (es. Zn+Bipyrazole vs Zn+Carbossilati)
+resta un possibile affinamento futuro, non incluso qui per non introdurre
+troppa granularità in un solo passaggio senza prima verificarne il valore.
+
+## 13. [MIGLIORAMENTO STRUTTURALE] Range numerici specifici per metallo+famiglia di legante
+**File:** `src/optimizer.py`, `app.py`
+Raffinamento annunciato nella voce 12: la cascata a 3 livelli (metallo →
+dataset → fisso) è ora a **4 livelli** aggiungendo il filtro per
+combinazione metallo+famiglia di legante, il livello di specificità più
+fine che i dati permettono.
+
+**Verifica preliminare che ne valesse la pena:** confrontati i range
+storici per lo stesso metallo ma famiglie diverse — Zn+Bipyrazole mediana
+160°C contro Zn+"Non specificata" mediana 100°C; Cu+Bipyrazole 150°C contro
+Cu+"Non specificata" 85°C. Differenze di 60-65°C per lo stesso metallo,
+a seconda della chimica del legante: motivo sufficiente per procedere.
+
+**Implementazione:** nuova funzione helper `_cascading_bounds()` che
+incatena `_quantile_bounds()` su una sequenza di sorgenti dalla meno alla
+più specifica (dataset intero → metallo → metallo+famiglia), riducendo la
+ripetizione di codice rispetto alla v12 e rendendo la cascata facile da
+estendere in futuro. Nessuna modifica a `_quantile_bounds()` stessa.
+**Trasparenza:** nuovo campo metadata `metal_family_specific_evidence_rows`;
+l'interfaccia mostra ora quale livello di specificità ha effettivamente
+informato i range (metallo+famiglia, se ≥10 record; altrimenti l'avviso
+già esistente sul fallback al dataset intero).
+
+**Verificato:** per Zn, le due famiglie (Bipyrazole n=24 record, Carboxylate
+n=21 record) usano ora dati distinti e producono proposte di temperatura
+diverse — confermato nei metadata restituiti. Combinazioni mai osservate
+(es. Ce+Phosphonate) ricadono correttamente sul livello meno specifico,
+senza crash. 8 nuovi test dedicati (`test_metal_family_bounds_feature.py`),
+tutti PASS. Nessuna regressione sulle 203 verifiche precedenti.
