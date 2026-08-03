@@ -10,6 +10,9 @@ import pandas as pd
 
 from .chem import COUNTERIONS, build_row, precursor_formula
 from .solubility import solubility_penalty
+from .vessel_conditions import vessel_requirement
+from .modulator_chemistry import modulator_compatibility
+from .solvent_miscibility import miscibility_check
 
 _SCHEMA_PATH = Path(__file__).resolve().parents[1] / "models" / "feature_schema_v8_0.json"
 try:
@@ -110,6 +113,21 @@ def _quantile_bounds(db: pd.DataFrame, col: str, fallback: Tuple[float, float]) 
     if not np.isfinite(lo) or not np.isfinite(hi) or lo >= hi:
         return fallback
     return lo, hi
+
+
+def _cascading_bounds(sources_least_to_most_specific: Sequence[pd.DataFrame], col: str, hardcoded_fallback: Tuple[float, float]) -> Tuple[float, float]:
+    """Quantile bounds for `col`, preferring the most specific source available.
+
+    Each source in `sources_least_to_most_specific` is tried in order, most
+    general first; whichever is the LAST one with at least 10 valid values
+    for this column wins (see _quantile_bounds). This builds a fallback
+    chain (e.g. metal+family -> metal -> whole dataset -> hardcoded default)
+    out of _quantile_bounds calls without needing to change that function.
+    """
+    result = hardcoded_fallback
+    for source in sources_least_to_most_specific:
+        result = _quantile_bounds(source, col, result)
+    return result
 
 
 def _pool(db: pd.DataFrame, col: str, n: int, default: Sequence[Any]) -> List[Any]:
@@ -461,14 +479,39 @@ def joint_optimize(
 
     evidence_db = positive_db if positive_db is not None and not positive_db.empty else db[pd.to_numeric(db.get("Esito_ML"), errors="coerce").eq(2)].copy()
     bounds_source = evidence_db if len(evidence_db) >= 50 else db
+    # Not every MOF system behaves alike: oxidation state and hydration number
+    # in particular are largely determined by the metal itself (e.g. Al is
+    # essentially always +3 in these precursors, Zr salts are typically far
+    # less hydrated than Al salts), and temperature/time/ratio windows differ
+    # further still by ligand family WITHIN a metal (e.g. Zn+Bipyrazole runs
+    # at a median ~160 degC in the historical data, Zn with an unclassified
+    # family at ~100 degC -- a 60 degC gap for the same metal). Using one
+    # dataset-wide quantile range for every system means an unusual-looking
+    # but perfectly normal system gets nudged toward whatever is merely most
+    # common in the overall (heavily imbalanced) historical database.
+    # _quantile_bounds falls back to its `fallback` argument whenever a
+    # column has fewer than 10 valid values; _cascading_bounds chains that
+    # into a four-tier cascade (metal+family -> metal -> whole dataset ->
+    # hardcoded default) without changing _quantile_bounds itself.
+    metal_name = str(base.get("Metallo", ""))
+    family_name = str(base.get("Famiglia_Legante", ""))
+    metal_bounds_source = (
+        bounds_source[bounds_source["Metallo"].astype(str).eq(metal_name)]
+        if "Metallo" in bounds_source.columns else bounds_source.iloc[0:0]
+    )
+    metal_family_bounds_source = (
+        metal_bounds_source[metal_bounds_source["Famiglia_Legante"].astype(str).eq(family_name)]
+        if "Famiglia_Legante" in metal_bounds_source.columns else metal_bounds_source.iloc[0:0]
+    )
+    _bounds_sources = (bounds_source, metal_bounds_source, metal_family_bounds_source)
     bounds = {
-        "Temperatura_C": _quantile_bounds(bounds_source, "Temperatura_C", (40, 220)),
-        "Tempo_ore": _quantile_bounds(bounds_source, "Tempo_ore", (0.5, 168)),
-        "Rapporto_LM": _quantile_bounds(bounds_source, "Rapporto_LM", (0.1, 10)),
-        "Volume solvente": _quantile_bounds(bounds_source, "Volume solvente", (0.5, 100)),
-        "mmol_Sale": _quantile_bounds(bounds_source, "mmol_Sale", (0.005, 10)),
-        "Hydration_Number": _quantile_bounds(bounds_source, "Hydration_Number", (0, 12)),
-        "Oxidation_State": _quantile_bounds(bounds_source, "Oxidation_State", (1, 6)),
+        "Temperatura_C": _cascading_bounds(_bounds_sources, "Temperatura_C", (40, 220)),
+        "Tempo_ore": _cascading_bounds(_bounds_sources, "Tempo_ore", (0.5, 168)),
+        "Rapporto_LM": _cascading_bounds(_bounds_sources, "Rapporto_LM", (0.1, 10)),
+        "Volume solvente": _cascading_bounds(_bounds_sources, "Volume solvente", (0.5, 100)),
+        "mmol_Sale": _cascading_bounds(_bounds_sources, "mmol_Sale", (0.005, 10)),
+        "Hydration_Number": _cascading_bounds(_bounds_sources, "Hydration_Number", (0, 12)),
+        "Oxidation_State": _cascading_bounds(_bounds_sources, "Oxidation_State", (1, 6)),
     }
     bounds["Temperatura_C"] = (max(bounds["Temperatura_C"][0], float(constraints.get("min_temperature", bounds["Temperatura_C"][0]))), min(bounds["Temperatura_C"][1], float(constraints.get("max_temperature", bounds["Temperatura_C"][1]))))
     bounds["Tempo_ore"] = (max(bounds["Tempo_ore"][0], float(constraints.get("min_time", bounds["Tempo_ore"][0]))), min(bounds["Tempo_ore"][1], float(constraints.get("max_time", bounds["Tempo_ore"][1]))))
@@ -588,6 +631,32 @@ def joint_optimize(
         "No resolved ligand structure (SMILES) was available, so the new solubility screen could not run: "
         "solvent choice is not being checked against ligand solubility for this ligand."
     ) if not ligand_smiles else None
+    # Informational only, deliberately not folded into Optimization_score: a
+    # sealed-vessel requirement is not a defect (solvothermal synthesis is
+    # normal and often preferable), it is a fact the user needs to plan the
+    # experiment with the right glassware.
+    candidates["Requires_Sealed_Vessel"] = [
+        vessel_requirement(r["Solvente"], r["Temperatura_C"])["requires_sealed_vessel"]
+        for _, r in candidates.iterrows()
+    ]
+    # Purely informational, like Requires_Sealed_Vessel above: the ligand-side
+    # figure is only a family-level pKa approximation, and "comparable
+    # acidity" is qualitative synthesis-literature guidance, not a physical
+    # law -- see src/modulator_chemistry.py. Never folded into the score.
+    ligand_family = base.get("Famiglia_Legante")
+    ligand_text = base.get("Legante")
+    candidates["Modulator_Note"] = candidates["Additivo_Colinker"].map(
+        lambda a: modulator_compatibility(ligand_family, a, ligand_text).get("verdict")
+        or modulator_compatibility(ligand_family, a, ligand_text).get("role")
+        or "not_applicable"
+    )
+    # Informational like Requires_Sealed_Vessel/Modulator_Note, but with one
+    # difference: an "immiscible" pair is a hard physical fact (the mixture
+    # cannot form a homogeneous reaction medium at all), not a soft
+    # judgment call, so if it survives into the final top_n results it is
+    # also surfaced as an explicit metadata warning below, not left as a
+    # column the user has to think to check.
+    candidates["Miscibility_Flag"] = candidates["Solvente"].map(lambda s: miscibility_check(s).get("flag"))
     candidates["Change_penalty"] = [_change_penalty(base, r, bounds) for _, r in candidates.iterrows()]
     candidates["Optimization_score"] = (
         weights["p_crystalline"] * candidates["P_Crystalline"] +
@@ -636,14 +705,25 @@ def joint_optimize(
         for idx, labels in strategy_labels.items():
             result.loc[idx, "Strategy"] = " & ".join(labels)
 
+    miscibility_warning = None
+    if "Miscibility_Flag" in result.columns and (result["Miscibility_Flag"] == "immiscible").any():
+        bad_solvents = sorted(set(result.loc[result["Miscibility_Flag"] == "immiscible", "Solvente"]))
+        miscibility_warning = (
+            f"{len(bad_solvents)} proposal(s) use a water/nonpolar-solvent combination that is not freely "
+            f"miscible ({', '.join(bad_solvents)}): these would likely separate into two liquid phases rather "
+            f"than a single reaction medium. See the 'Miscibility_Flag' column."
+        )
+
     metadata = {
         "optimizer_version": "10.6.1",
-        "warnings": [w for w in [solvent_warning, solubility_warning] if w],
+        "warnings": [w for w in [solvent_warning, solubility_warning, miscibility_warning] if w],
         "objective": objective,
         "requested_samples": n_samples,
         "feasible_candidates": int(len(candidates)),
         "returned_candidates": int(len(result)),
         "positive_library_rows": int(len(evidence_db)),
+        "metal_specific_evidence_rows": int(len(metal_bounds_source)),
+        "metal_family_specific_evidence_rows": int(len(metal_family_bounds_source)),
         "template_candidates": int(n_template),
         "exploration_candidates": int(n_samples - n_template),
         "fixed_variables": ["Legante", "Ligand_SMILES", "Famiglia_Legante", "Metallo"],

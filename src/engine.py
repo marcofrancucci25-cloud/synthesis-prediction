@@ -2,6 +2,9 @@ from pathlib import Path
 import json, joblib, numpy as np, pandas as pd
 from .chem import build_row, canonicalize_family, canonicalize_ligand_for_model, infer_family, parse_salt, FAMILIES
 from .solubility import describe as _solubility_describe
+from .vessel_conditions import vessel_requirement as _vessel_requirement
+from .modulator_chemistry import modulator_compatibility as _modulator_compatibility
+from .solvent_miscibility import miscibility_check as _miscibility_check
 from .optimizer import joint_optimize
 from .mof_registry import known_mof_matches
 ROOT=Path(__file__).resolve().parents[1]
@@ -271,9 +274,22 @@ def applicability(values):
     # sound. See src/solubility.py for what this estimate can and cannot
     # detect (it is a coarse screen, not a substitute for chemical judgment).
     solubility=_solubility_describe(values.get('Ligand_SMILES'), values.get('Solvente',''))
+    # Same kind of self-consistency check as family_mismatch above, applied to
+    # a different pair of user-facing fields: an explicitly declared
+    # "Room Temperature" / "Precipitation" procedure is inconsistent with a
+    # temperature that, per src/vessel_conditions.py, is at or above the
+    # solvent's boiling point and would actually require a sealed vessel.
+    # Purely informational -- it does not change the AD score, since a
+    # sealed-vessel requirement is not evidence the model is extrapolating.
+    vessel=_vessel_requirement(values.get('Solvente',''), values.get('Temperatura_C'))
+    declared_procedure=str(values.get('Procedura_Sintetica') or '').strip()
+    vessel_mismatch=bool(vessel.get('requires_sealed_vessel')) and declared_procedure in ('Room Temperature','Precipitation')
+    modulator=_modulator_compatibility(values.get('Famiglia_Legante'), values.get('Additivo_Colinker',''), values.get('Legante',''))
+    miscibility=_miscibility_check(values.get('Solvente',''))
     return {'score':score,'label':label,'ligand_seen':seen_lig,'metal_seen':seen_metal,'salt_seen':seen_salt,
             'identity_score':float(identity_score),'validity':validity,'family_mismatch':family_mismatch,
-            'declared_family':declared_family,'inferred_family':inferred_family,'solubility':solubility}
+            'declared_family':declared_family,'inferred_family':inferred_family,'solubility':solubility,
+            'vessel':vessel,'vessel_mismatch':vessel_mismatch,'modulator':modulator,'miscibility':miscibility}
 
 def similar(values,n=15):
     d=EVIDENCE_DB.copy(); metal=str(values.get('Metallo','')); fam=canonicalize_family(values.get('Famiglia_Legante',''),values.get('Legante',''))
