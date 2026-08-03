@@ -1,6 +1,6 @@
 {
-  "version": "10.11.0",
-  "file_count": 131,
+  "version": "10.11.2",
+  "file_count": 136,
   "files": [
     {
       "path": ".gitignore",
@@ -18,24 +18,29 @@
       "sha256": "e4bb4e877b2ae992c63de56794e17df86accfb60a5940e48f721d9f67b7ac97e"
     },
     {
+      "path": "CHANGELOG_FIXES.md",
+      "size": 7426,
+      "sha256": "6fbee53789421e17e841036509483a64d0e89737bac955801c68654af1a641fa"
+    },
+    {
       "path": "LICENSE",
       "size": 250,
       "sha256": "b31eb295670efd63177916c746e14a8ec6727bb258b24a3fe42fd35dfdee3863"
     },
     {
       "path": "README.md",
-      "size": 11106,
-      "sha256": "925d1e975208fe76c1a4e4d9f51ce125e346c93f2ca0651d3535e1a11e24f3d3"
+      "size": 11928,
+      "sha256": "f847dcdcf7036ec81a87fb91cd415f61ac48b4fd1ca970aa4749b5f1319f4d68"
     },
     {
       "path": "VERSION",
       "size": 8,
-      "sha256": "029d525e1c271e57d2537627f7699f2a0c64d53900bafd3d7c530961c0306dbb"
+      "sha256": "56231abd34107984ddb99b002dcba2f52c7fa09ae3ab07fde5c2d43267dd847a"
     },
     {
       "path": "app.py",
-      "size": 36940,
-      "sha256": "e39ff62e474fe690b026583608c4c0a671f85b29758f83fdf3cfc4414fb7d54d"
+      "size": 39027,
+      "sha256": "0d90bb1fbd8a2c74604f0b8383d15bfce21b7852bfee57bf86cbe77a80cb288b"
     },
     {
       "path": "data/Dataset_Multivariate_Schema_v10.csv",
@@ -156,6 +161,11 @@
       "path": "data/v11_training_candidates.csv",
       "size": 233495,
       "sha256": "8f1b8d275fc7a3976f30222156573045ba7410fe7f29c85d5c661f2efe233523"
+    },
+    {
+      "path": "deep_test.py",
+      "size": 16506,
+      "sha256": "8ef6e97cab6241f5a934206c884cc55fb852d273660a6cc6249f7d2292263578"
     },
     {
       "path": "models/MOF_ChemAware_Ensemble_v8_0.joblib",
@@ -328,6 +338,11 @@
       "sha256": "aea3cc4f037a8c4206eb257563eb34b302a311d9b449cb486473eb170e66860f"
     },
     {
+      "path": "reports/VALIDATED_RATIO_SENSITIVITY_FIX_v10_11_2.md",
+      "size": 1556,
+      "sha256": "bd7f9f8e20e78221a1f15c22d591772e4be5c4f56403191e63e613a34d27c8aa"
+    },
+    {
       "path": "reports/VALIDITY_GATE_v10_4_1.md",
       "size": 856,
       "sha256": "9fe0806aa4c5b7f4d42ee32382a8b27ed6cbc13c505d3281a0fe2e23b55539d4"
@@ -494,8 +509,8 @@
     },
     {
       "path": "src/engine.py",
-      "size": 15669,
-      "sha256": "996cbccb4262c354a1261dd53cd8acdd47431514ad85cf68ed0aae8a8bbdcc5b"
+      "size": 22995,
+      "sha256": "8440ae2a9953f609b5810e231e58665344110d4de9922d12f447e193d213949e"
     },
     {
       "path": "src/literature.py",
@@ -509,8 +524,8 @@
     },
     {
       "path": "src/optimizer.py",
-      "size": 30028,
-      "sha256": "2627a31b3cbe8099ca2a1e85b82575c1e93e453c37d9336c0ce0e5fbfa1e898b"
+      "size": 34302,
+      "sha256": "49e0f727b266c326571c7d5bf8566313d66873ea8780a38f1898bcf529789c43"
     },
     {
       "path": "src/pubchem.py",
@@ -550,7 +565,7 @@
     {
       "path": "tests/test_interface_v10_7_2.py",
       "size": 931,
-      "sha256": "890430269e41607ef6639d11d6cee100b17bdae26ad7264aee4b76299bdddf98"
+      "sha256": "d0489f16bd7ecbfc1e150a6526d7c947a258b4897264cefc191658f79c58e6e3"
     },
     {
       "path": "tests/test_joint_optimizer.py",
@@ -570,7 +585,7 @@
     {
       "path": "tests/test_positive_recommendation.py",
       "size": 1289,
-      "sha256": "7047f4a2044487b4f89be680bc5f95381e9d85770bdd0af6222ea0bd7b1d4473"
+      "sha256": "9556ec263f79a0047ef8502a827cfe30b3115785642b73b776834fa67ca85a56"
     },
     {
       "path": "tests/test_prediction_validity.py",
@@ -581,6 +596,11 @@
       "path": "tests/test_resolver.py",
       "size": 1985,
       "sha256": "e42cb981339bff208118889804ae6e1c1722168c944bafc681563b337c774762"
+    },
+    {
+      "path": "tests/test_sensitivity_ratio_v10_11_2.py",
+      "size": 2975,
+      "sha256": "b81fd1b58bbfaa2bdc8f3357d3f6a1a4314561d7f206a23b8144934d76948ff1"
     },
     {
       "path": "tests/test_structural_pipeline.py",
@@ -656,6 +676,11 @@
       "path": "tools/train_structural_predictor_v10_5.py",
       "size": 3748,
       "sha256": "daba996148863552d26110516e219f8cd7da8bdb4545e0e6e2a6e3a9d26efd3c"
+    },
+    {
+      "path": "verify_fixes.py",
+      "size": 3885,
+      "sha256": "37345c6dab27af0e391619b69b1042ac549da36182993229bec4e778c6eb062a"
     }
   ]
 }

@@ -55,11 +55,11 @@ def optimize_joint(*args, **kwargs):
 from src.resolver import resolve_ligand, confirmed_entry
 from src.literature import search_literature
 
-APP_VERSION = "10.11.0"
+APP_VERSION = "10.11.2"
 
 st.set_page_config(page_title="MOF Synthesis Assistant", page_icon="🧪", layout="wide")
-st.title("🧪 MOF Synthesis Assistant v10.11.0")
-st.caption("Version 10.11.0 · 100 additional literature protocols with auditable outcome mapping; production predictor unchanged")
+st.title("🧪 MOF Synthesis Assistant v10.11.2")
+st.caption("Version 10.11.2 · Stoichiometrically coherent, domain-filtered local sensitivity; production predictor unchanged")
 st.caption("Prediction evaluates the exact entered conditions. Optimization separately combines three-class risk, successful precedents, feasibility and applicability while keeping only ligand and metal fixed.")
 page = st.sidebar.radio("Module", ["Predict synthesis", "Literature search", "About"])
 
@@ -431,7 +431,11 @@ def render_prediction(result):
         st.bar_chart(pd.DataFrame({"Probability":probabilities},index=labels))
     influence=result['influence']
     st.subheader("Why did the model reach this prediction?")
-    st.caption("Local sensitivity analysis: each editable condition is varied independently over plausible, data-derived alternatives. It is descriptive, not causal.")
+    st.caption(
+        "Controlled local model sensitivity—not a synthesis recommendation. Only numerically reliable "
+        "alternatives are evaluated. For L:M changes, ligand and metal amounts are rebalanced while "
+        "keeping the total precursor amount constant. Use the joint optimizer below for complete proposals."
+    )
     if not influence.empty:
         chart=influence.set_index('Parameter')[['Influence']]
         st.bar_chart(chart)
@@ -442,7 +446,9 @@ def render_prediction(result):
             st.markdown("### 🔴 Main limiting factors")
             if limiting.empty: st.write("No strong limiting condition was detected locally.")
             for _,r in limiting.iterrows():
-                st.write(f"**{r.Parameter}:** current `{r.Current}` → best tested `{r.Best_alternative}` (up to {r.Best_P_crystalline:.1%} crystalline probability)")
+                st.write(f"**{r.Parameter}:** current `{r.Current}` → best supported perturbation `{r.Best_alternative}` (model response up to {r.Best_P_crystalline:.1%} crystalline probability)")
+                if r.Field=='Rapporto_LM' and pd.notna(r.get('Best_Alternative_Detail')):
+                    st.caption(str(r.Best_Alternative_Detail))
         with right:
             st.markdown("### 🟢 Factors supporting crystallization")
             if favorable.empty: st.write("No strongly favorable condition was isolated locally.")
@@ -604,6 +610,6 @@ elif page=="Literature search":
         )
 else:
     st.markdown("""### Scope and scientific limitations
-Version 10.11.0 normalizes public ligand families and common linker aliases before prediction, reports verified laboratory or literature precedents independently from model probabilities, and adds oxidation-state-aware HSAB labels to the metal selector. It identifies only exact curated metal–linker pairs and supplies DOI-derived article links. The provenance-first v11 gold dataset now contains 179 records, including a 90-experiment HKUST-1 campaign with its continuous PXRD-derived score and ten directly designated high-crystallinity MOF-321/MOF-322 protocols. Training candidates and the external benchmark remain separated at DOI level. Framework names are literature candidates, never structural identification from composition alone.
+Version 10.11.2 normalizes public ligand families and common linker aliases before prediction, reports verified laboratory or literature precedents independently from model probabilities, and adds oxidation-state-aware HSAB labels to the metal selector. It identifies only exact curated metal–linker pairs and supplies DOI-derived article links. Local L:M sensitivity now uses central ratios actually observed for comparable chemistry, rebalances ligand and metal mmol at constant total precursor amount, and discards numerically unreliable alternatives. The provenance-first v11 gold dataset contains 179 records, including a 90-experiment HKUST-1 campaign with its continuous PXRD-derived score and ten directly designated high-crystallinity MOF-321/MOF-322 protocols. Training candidates and the external benchmark remain separated at DOI level. Framework names are literature candidates, never structural identification from composition alone.
 
 The explanation is **model-based and descriptive, not causal**. Optimized conditions are hypotheses for experimental prioritization, not guarantees of MOF formation. The predictive core remains the validated frozen v8.0 ensemble: two retraining candidates were rejected because their gain in crystalline recall reduced three-class specificity. The v11 foundation is not activated for training because its eligible records still lack sufficient independent-source and minority-class coverage; verified evidence is therefore displayed separately rather than being converted into an uncalibrated probability.""")

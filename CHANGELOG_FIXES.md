@@ -1,3 +1,14 @@
+# Correzione sensibilità stechiometrica — v10.11.2
+
+- eliminate le alternative L/M costruite con una sottrazione arbitraria;
+- selezionati solo rapporti centrali realmente osservati per sistemi chimicamente comparabili;
+- mantenuta costante la quantità totale di precursori durante la perturbazione del rapporto;
+- ricalcolate coerentemente le mmol di legante e metallo;
+- scartate le alternative che non superano il gate numerico di validità;
+- separata esplicitamente la sensibilità descrittiva dalle raccomandazioni dell'ottimizzatore.
+
+Il modello predittivo congelato non è stato riaddestrato o alterato.
+
 # Correzioni applicate — v10.11.1 (patch di test)
 
 Le seguenti correzioni sono state applicate al codice sorgente v10.11.0 in risposta
