@@ -166,3 +166,24 @@ test dedicati (`test_solubility_feature.py`), tutti PASS; nessuna
 regressione sulle 121 verifiche precedenti (61 test ufficiali + 47 + 13,
 con un aggiornamento a `verify_fixes.py` per riflettere il nuovo avviso
 legittimo quando lo SMILES manca).
+
+## 8. [MODIFICA INTERFACCIA] Ricerca letteratura: pulsante reset e riordino dei risultati
+**File:** `app.py`
+Richiesto dall'utente. Due modifiche alla pagina "Literature search":
+- Aggiunto un pulsante "Reset search" accanto a "Search literature" (stesso
+  pattern già usato per predizione e ottimizzatore: `_reset_literature_inputs()`
+  pulisce sia i risultati sia i campi del form). Per renderlo possibile, il
+  form è stato convertito da `st.form(...)` a widget con `key` espliciti —
+  Streamlit non permette pulsanti generici con `on_click` dentro un `st.form`.
+- Ogni risultato ora mostra, in quest'ordine: **titolo** (invariato, grande e
+  cliccabile) → **DOI** (`st.caption`, più piccolo del titolo) → **abstract**
+  (font ridotto ma leggibile, 0.92rem, non un semplice `st.write`).
+- Aggiunta protezione: titolo e abstract vengono passati da `html.escape()`
+  prima di essere inseriti nel blocco `unsafe_allow_html=True` dell'abstract,
+  per evitare che testo HTML/markdown imprevisto proveniente dai risultati
+  di ricerca esterni (Tavily) rompa il layout della pagina.
+
+**Verificato:** 3 nuovi test (`tests/test_literature_search_interface_v10_11_3.py`)
+verificano la presenza del pulsante di reset, l'ordine esatto titolo→DOI→abstract
+nel sorgente, e l'uso dell'escaping HTML. Nessuna regressione sulle 141
+verifiche precedenti (61 test ufficiali + 47 + 13 + 20).

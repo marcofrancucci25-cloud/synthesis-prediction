@@ -59,7 +59,7 @@ APP_VERSION = "10.11.2"
 
 st.set_page_config(page_title="MOF Synthesis Assistant", page_icon="🧪", layout="wide")
 st.title("🧪 MOF Synthesis Assistant v10.11.2")
-st.caption("Version 10.11.2 · Stoichiometrically coherent, domain-filtered local sensitivity; production predictor unchanged")
+st.caption("Version 10.11.3 · Ligand/solvent solubility screening (RDKit/ESOL); literature search reset control and reformatted results")
 st.caption("Prediction evaluates the exact entered conditions. Optimization separately combines three-class risk, successful precedents, feasibility and applicability while keeping only ligand and metal fixed.")
 page = st.sidebar.radio("Module", ["Predict synthesis", "Literature search", "About"])
 
@@ -136,6 +136,15 @@ def _reset_optimizer_inputs():
         "joint_max_temp", "joint_max_time", "joint_samples",
         "joint_keep_precursor", "joint_keep_solvent", "joint_keep_additive",
         "joint_banned",
+    ]:
+        st.session_state.pop(key, None)
+
+
+def _reset_literature_inputs():
+    """Clear the literature search form and any results currently shown."""
+    for key in [
+        "literature_results", "literature_query",
+        "lit_query", "lit_years", "lit_max_results", "lit_mof_focus",
     ]:
         st.session_state.pop(key, None)
 
@@ -569,16 +578,21 @@ elif page=="Literature search":
     st.write("Search recent articles from selected scholarly publishers and repositories using Tavily.")
     st.caption("Results are restricted to scientific domains, but relevance and bibliographic details should still be verified on the publisher page.")
 
-    with st.form("literature_search_form"):
-        query = st.text_input(
-            "Keyword or research question",
-            placeholder="e.g. bipyrazole MOF oxygen evolution reaction",
-        )
-        c1, c2, c3 = st.columns(3)
-        years_back = c1.selectbox("Publication window", [1, 2, 3, 5, 10], index=3, format_func=lambda x: f"Last {x} year" if x == 1 else f"Last {x} years")
-        max_results = c2.slider("Number of articles", 5, 20, 10)
-        mof_focus = c3.checkbox("Add MOF context", value=True, help="Adds MOF and synthesis terms to improve materials-science relevance.")
-        submitted = st.form_submit_button("Search literature", type="primary")
+    query = st.text_input(
+        "Keyword or research question",
+        placeholder="e.g. bipyrazole MOF oxygen evolution reaction",
+        key="lit_query",
+    )
+    c1, c2, c3 = st.columns(3)
+    years_back = c1.selectbox("Publication window", [1, 2, 3, 5, 10], index=3, format_func=lambda x: f"Last {x} year" if x == 1 else f"Last {x} years", key="lit_years")
+    max_results = c2.slider("Number of articles", 5, 20, 10, key="lit_max_results")
+    mof_focus = c3.checkbox("Add MOF context", value=True, help="Adds MOF and synthesis terms to improve materials-science relevance.", key="lit_mof_focus")
+
+    search_col, reset_col = st.columns(2)
+    with search_col:
+        submitted = st.button("Search literature", type="primary", use_container_width=True)
+    with reset_col:
+        st.button("Reset search", on_click=_reset_literature_inputs, key="reset_literature", use_container_width=True)
 
     if submitted:
         if not query.strip():
@@ -602,12 +616,22 @@ elif page=="Literature search":
         st.success(f"Found {len(results)} selected results for: {st.session_state.get('literature_query', '')}")
         for i, article in enumerate(results, start=1):
             date_text = article.get("published_date") or "Date not supplied by source"
-            st.markdown(f"### {i}. [{article['title']}]({article['url']})")
-            st.caption(f"{article['source']} · {date_text} · Tavily relevance {article['score']:.2f}")
+            title = html.escape(str(article.get("title") or "Untitled"))
+            url = article.get("url") or ""
+            # 1) Title — largest text, clickable.
+            st.markdown(f"### {i}. [{title}]({url})" if url else f"### {i}. {title}")
+            # 2) DOI, directly under the title, in a smaller font than the title.
             if article.get("doi"):
-                st.code(article["doi"], language=None)
+                st.caption(f"DOI: {html.escape(str(article['doi']))}")
+            st.caption(f"{html.escape(str(article.get('source','')))} · {date_text} · Tavily relevance {article['score']:.2f}")
+            # 3) Abstract — small font, but a touch larger than the caption
+            # lines above so a multi-line abstract stays comfortably readable.
             if article.get("summary"):
-                st.write(article["summary"])
+                summary = html.escape(str(article["summary"]))
+                st.markdown(
+                    f"<div style='font-size:0.92rem; line-height:1.5; color:inherit;'>{summary}</div>",
+                    unsafe_allow_html=True,
+                )
             st.divider()
 
         export = pd.DataFrame(results)
@@ -619,6 +643,6 @@ elif page=="Literature search":
         )
 else:
     st.markdown("""### Scope and scientific limitations
-Version 10.11.2 normalizes public ligand families and common linker aliases before prediction, reports verified laboratory or literature precedents independently from model probabilities, and adds oxidation-state-aware HSAB labels to the metal selector. It identifies only exact curated metal–linker pairs and supplies DOI-derived article links. Local L:M sensitivity now uses central ratios actually observed for comparable chemistry, rebalances ligand and metal mmol at constant total precursor amount, and discards numerically unreliable alternatives. The provenance-first v11 gold dataset contains 179 records, including a 90-experiment HKUST-1 campaign with its continuous PXRD-derived score and ten directly designated high-crystallinity MOF-321/MOF-322 protocols. Training candidates and the external benchmark remain separated at DOI level. Framework names are literature candidates, never structural identification from composition alone.
+Version 10.11.3 adds an RDKit/ESOL-based ligand/solvent solubility screen (a heuristic penalty layered on the optimizer's scoring, not a trained model feature; see CHANGELOG_FIXES.md for its known limitations on rigid symmetric aromatic acids) and reworks the literature search page (a reset control next to the search action, and results reordered as title, DOI, then abstract). It also carries forward: canonical public ligand families and common linker aliases before prediction, verified laboratory or literature precedents reported independently from model probabilities, oxidation-state-aware HSAB labels on the metal selector, exact curated metal–linker pairs with DOI-derived article links, and stoichiometrically coherent, domain-filtered local L:M sensitivity. The provenance-first v11 gold dataset contains 179 records, including a 90-experiment HKUST-1 campaign with its continuous PXRD-derived score and ten directly designated high-crystallinity MOF-321/MOF-322 protocols. Training candidates and the external benchmark remain separated at DOI level. Framework names are literature candidates, never structural identification from composition alone.
 
 The explanation is **model-based and descriptive, not causal**. Optimized conditions are hypotheses for experimental prioritization, not guarantees of MOF formation. The predictive core remains the validated frozen v8.0 ensemble: two retraining candidates were rejected because their gain in crystalline recall reduced three-class specificity. The v11 foundation is not activated for training because its eligible records still lack sufficient independent-source and minority-class coverage; verified evidence is therefore displayed separately rather than being converted into an uncalibrated probability.""")
