@@ -62,10 +62,15 @@ def test_ratio_sensitivity_rebalances_amounts_and_preserves_total(monkeypatch):
 
 
 def test_interface_does_not_present_sensitivity_as_optimizer_recommendation():
+    # The per-factor "Main limiting factors" / "Factors supporting crystallization"
+    # breakdown (which used the "best supported perturbation" phrasing) was removed
+    # from the UI as redundant with the joint optimizer shown further down the page
+    # (see reports/ — UI simplification, v10.18). The underlying sensitivity
+    # analysis in src.engine (tested above) is unchanged; only this specific
+    # display block is gone, so its exact wording is no longer asserted here.
     source = open("app.py", encoding="utf-8").read()
     assert "best tested" not in source
     assert "Controlled local model sensitivity—not a synthesis recommendation" in source
-    assert "best supported perturbation" in source
 
 
 def test_no_reliable_perturbation_returns_an_empty_typed_result(monkeypatch):
