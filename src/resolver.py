@@ -321,6 +321,81 @@ def _opsin_candidate(query: str, timeout: int) -> dict[str, Any] | None:
     }
 
 
+def _chembl_candidate(query: str, timeout: int) -> dict[str, Any] | None:
+    """Query ChEMBL's molecule search. Covers bioactive/code-named compounds
+    (e.g. 'GDC-0994') that are frequently absent or hard to match by name in
+    PubChem's index."""
+    url = f"https://www.ebi.ac.uk/chembl/api/data/molecule/search?q={quote(query, safe='')}&format=json"
+    payload = _request_json(url, timeout)
+    if not payload:
+        return None
+    molecules = payload.get("molecules") or []
+    if not molecules:
+        return None
+    mol = molecules[0]
+    struct = mol.get("molecule_structures") or {}
+    smiles = struct.get("canonical_smiles")
+    if not smiles:
+        return None
+    return {
+        "Title": mol.get("pref_name") or query,
+        "IUPACName": mol.get("pref_name"),
+        "SMILES": smiles,
+        "InChIKey": struct.get("standard_inchi_key"),
+        "_source": "ChEMBL",
+        "_chembl_id": mol.get("molecule_chembl_id"),
+    }
+
+
+def _pdb_ligand_candidate(query: str, timeout: int) -> dict[str, Any] | None:
+    """Query the PDB Chemical Component Dictionary (RCSB full-text search on
+    'mol_definition'). Covers ligands indexed primarily through crystal
+    structures, which sometimes lag or diverge from PubChem's naming."""
+    search_url = "https://search.rcsb.org/rcsbsearch/v2/query"
+    body = {
+        "query": {
+            "type": "terminal",
+            "service": "full_text",
+            "parameters": {"value": query},
+        },
+        "return_type": "mol_definition",
+        "request_options": {"return_all_hits": False},
+    }
+    try:
+        response = requests.post(
+            search_url, json=body,
+            headers={"User-Agent": USER_AGENT, "Accept": "application/json"},
+            timeout=timeout,
+        )
+        if response.status_code != 200:
+            return None
+        results = (response.json() or {}).get("result_set") or []
+        if not results:
+            return None
+        comp_id = results[0].get("identifier")
+        if not comp_id:
+            return None
+    except (requests.RequestException, ValueError):
+        return None
+
+    detail = _request_json(f"https://data.rcsb.org/rest/v1/core/chemcomp/{comp_id}", timeout)
+    if not detail:
+        return None
+    descriptor = detail.get("rcsb_chem_comp_descriptor") or {}
+    info = detail.get("chem_comp") or {}
+    smiles = descriptor.get("smiles")
+    if not smiles:
+        return None
+    return {
+        "Title": info.get("name") or query,
+        "IUPACName": info.get("name"),
+        "SMILES": smiles,
+        "InChIKey": descriptor.get("inchikey"),
+        "_source": "PDB Ligand Expo",
+        "_pdb_comp_id": comp_id,
+    }
+
+
 def _candidate_from_smiles(query: str, normalized: str, input_type: str, smiles: str,
                            source: str, metadata: dict[str, Any] | None = None) -> ResolutionResult | None:
     canonical = _canonicalize_smiles(smiles)
@@ -389,6 +464,10 @@ def _score_candidate(candidate: ResolutionResult) -> float:
         score += 10
     if any("Cactus" in x for x in sources):
         score += 5
+    if any("ChEMBL" in x for x in sources):
+        score += 8
+    if any("PDB Ligand Expo" in x for x in sources):
+        score += 8
     notes = candidate.validation_notes or []
     score -= 18 * len([n for n in notes if "does not" in n.lower() or "mismatch" in n.lower()])
     for note in notes:
@@ -702,6 +781,31 @@ def resolve_ligand(query: str, timeout: int = DEFAULT_TIMEOUT, user_cache_json: 
             if c:
                 c.validation_notes = list(c.validation_notes or []) + [f"Resolved from query variant: {variant}"]
                 candidates.append(c)
+
+    # ChEMBL and the PDB Chemical Component Dictionary catch code-named or
+    # crystallographic ligands that PubChem/OPSIN/Cactus sometimes miss.
+    # Only spend the extra calls when consensus is still thin, to keep
+    # typical resolution latency unchanged for the common case.
+    if len(_merge_candidates(candidates)) < 2:
+        for variant in variants[:2]:
+            chembl = _chembl_candidate(variant, timeout)
+            if chembl:
+                c = _candidate_from_smiles(original, normalized, input_type, chembl["SMILES"], "ChEMBL", chembl)
+                if c:
+                    c.validation_notes = list(c.validation_notes or []) + [
+                        f"ChEMBL ID: {chembl.get('_chembl_id')}", f"Resolved from query variant: {variant}"
+                    ]
+                    candidates.append(c)
+
+        for variant in variants[:2]:
+            pdb = _pdb_ligand_candidate(variant, timeout)
+            if pdb:
+                c = _candidate_from_smiles(original, normalized, input_type, pdb["SMILES"], "PDB Ligand Expo", pdb)
+                if c:
+                    c.validation_notes = list(c.validation_notes or []) + [
+                        f"PDB component ID: {pdb.get('_pdb_comp_id')}", f"Resolved from query variant: {variant}"
+                    ]
+                    candidates.append(c)
 
     # Last fallback: Tavily is used only to discover alternate textual identifiers.
     if not candidates:
