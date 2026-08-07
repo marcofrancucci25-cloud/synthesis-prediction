@@ -456,20 +456,6 @@ def render_prediction(result):
     if not influence.empty:
         chart=influence.set_index('Parameter')[['Influence']]
         st.bar_chart(chart)
-        left,right=st.columns(2)
-        limiting=influence[influence.Direction=='Limiting'].head(4)
-        favorable=influence[influence.Direction=='Favorable'].head(4)
-        with left:
-            st.markdown("### 🔴 Main limiting factors")
-            if limiting.empty: st.write("No strong limiting condition was detected locally.")
-            for _,r in limiting.iterrows():
-                st.write(f"**{r.Parameter}:** current `{r.Current}` → best supported perturbation `{r.Best_alternative}` (relative crystalline score up to {r.Best_P_crystalline:.1%})")
-                if r.Field=='Rapporto_LM' and pd.notna(r.get('Best_Alternative_Detail')):
-                    st.caption(str(r.Best_Alternative_Detail))
-        with right:
-            st.markdown("### 🟢 Factors supporting crystallization")
-            if favorable.empty: st.write("No strongly favorable condition was isolated locally.")
-            for _,r in favorable.iterrows(): st.write(f"**{r.Parameter}:** current value `{r.Current}` is locally favorable.")
     if not ad['ligand_seen']: st.warning("The ligand was not observed exactly in training. Chemical recognition does not remove model extrapolation.")
     if not ad['metal_seen']: st.warning("The selected metal was not observed in training; uncertainty remains high.")
     if ad.get('family_mismatch'): st.warning(f"Declared ligand family (\"{ad.get('declared_family')}\") does not match the family inferred from the ligand name (\"{ad.get('inferred_family')}\"). This is a model input and can change the prediction; verify the selection is intentional.")
