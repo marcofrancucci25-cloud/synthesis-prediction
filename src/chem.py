@@ -140,6 +140,14 @@ def infer_family(text):
     if 'curc' in s or 'diketon' in s: return 'Curcumin/β-diketonate'
     return 'Other/unknown'
 
+_ANION_CHARGE = {
+    'nitrate': 1, 'acetate': 1, 'perchlorate': 1, 'bromide': 1, 'chloride': 1,
+    'iodide': 1, 'fluoride': 1, 'hydroxide': 1, 'triflate': 1,
+    'tetrafluoroborate': 1, 'hexafluorophosphate': 1, 'acetylacetonate': 1,
+    'alkoxide': 1, 'sulfate': 2, 'carbonate': 2, 'oxalate': 2,
+}
+
+
 def parse_salt(formula):
     s=str(formula or '').replace(' ', '').replace('•','·')
     hyd=0.0
@@ -147,17 +155,49 @@ def parse_salt(formula):
     if m: hyd=float(m.group(1))
     elif 'H2O' in s: hyd=1.0
     sl=s.lower()
+    # Anion identification. NOTE: 'iodide' is matched separately (against the
+    # ORIGINAL-case string) because a lowercase 'i' is far too common a
+    # substring (acetylacetonate, oxide, etc.) to use as a safe token once
+    # the formula is lowercased; the capital element symbol 'I' immediately
+    # followed by a digit/end-of-string is a much more reliable anchor.
     tests=[('nitrate','no3'),('acetate','oac'),('perchlorate','clo4'),('sulfate','so4'),('triflate','cf3so3'),('tetrafluoroborate','bf4'),('hexafluorophosphate','pf6'),('bromide','br'),('chloride','cl'),('hydroxide','oh'),('alkoxide','och3'),('acetylacetonate','acac')]
     an='other'
-    for name,token in tests:
-        if token in sl: an=name; break
+    if re.search(r'I(?=[0-9)]|$)', s):
+        an='iodide'
+    else:
+        for name,token in tests:
+            if token in sl: an=name; break
     ox=np.nan
     roman={'i':1,'ii':2,'iii':3,'iv':4,'v':5,'vi':6}
     rm=re.search(r'\(([ivx]+)\)',sl)
-    if rm: ox=roman.get(rm.group(1),np.nan)
+    if rm:
+        ox=roman.get(rm.group(1),np.nan)
     else:
+        # Explicit patterns first (kept from the original implementation for
+        # backward compatibility / readability on the most common salts).
         for pat,val in [(r'no3\)3',3),(r'cl3',3),(r'no3\)2',2),(r'cl2',2),(r'oac\)2',2),(r'cl4',4),(r'och3\)4',4)]:
             if re.search(pat,sl): ox=val; break
+        if np.isnan(ox):
+            # General charge-balance fallback: read an explicit multiplier
+            # directly after the anion token / its closing parenthesis
+            # (covers e.g. ZnBr2, Zn(acac)2, Zn(ClO4)2, ZnI2), otherwise -
+            # for anion tokens with a known charge - assume a single anion
+            # unit balances the cation (covers e.g. ZnSO4).
+            mult=None
+            m2=re.search(r'(?:no3|oac|clo4|acac|bf4|pf6)\)?(\d)',sl)
+            if m2:
+                mult=int(m2.group(1))
+            else:
+                m3=re.search(r'(?:cl|br)(\d)',sl)
+                if m3:
+                    mult=int(m3.group(1))
+                elif an=='iodide':
+                    m4=re.search(r'I(\d)',s)
+                    if m4: mult=int(m4.group(1))
+            if mult is not None:
+                ox=mult*_ANION_CHARGE.get(an,1)
+            elif an in _ANION_CHARGE:
+                ox=_ANION_CHARGE[an]
     return {'Hydration_Number':hyd,'Counterion_Class':an,'Oxidation_State':ox}
 
 def build_row(values):

@@ -216,6 +216,16 @@ def prediction_validity(values):
             v = np.nan
         r = TRAINING_RANGES.get(c)
         if not r or not np.isfinite(v):
+            if c == "Volume solvente":
+                # Solvent volume is missing in ~85% of the historical database
+                # (a legacy reporting gap, not a sign of an unusual input) and
+                # the predictor itself does not use it as a feature (see
+                # NUMERIC_NO_VOLUME). Penalizing its absence at full severity
+                # was making the abstention gate fire on the vast majority of
+                # in-distribution queries, including training-set records
+                # themselves. Treat a missing value here as uninformative
+                # rather than as evidence of extrapolation.
+                continue
             issues.append(f"{labels[c]} is missing or non-numeric.")
             penalties.append(1.0)
             continue
@@ -244,12 +254,19 @@ def prediction_validity(values):
         pass
 
     # Concentration plausibility where volume is available (mmol/mL numerically equals mol/L).
+    # Solvent volume is unrecorded for ~85% of the historical database (see the
+    # missing-Volume-solvente handling above); when it is genuinely absent
+    # there is no basis to compute -- let alone penalize -- a concentration,
+    # so the check is skipped rather than treated as an infinite/implausible
+    # value.
     try:
-        vol=float(values.get("Volume solvente")); total=float(values.get("mmol_Legante"))+float(values.get("mmol_Sale"))
-        conc=total/vol if vol>0 else np.inf
-        if not np.isfinite(conc) or conc>1.35 or conc<0.003:
-            issues.append(f"Total precursor concentration ({conc:.3g} mol/L) is outside the central 98% of recorded syntheses (~0.003–1.32 mol/L).")
-            penalties.append(0.8)
+        vol=float(values.get("Volume solvente"))
+        if np.isfinite(vol) and vol>0:
+            total=float(values.get("mmol_Legante"))+float(values.get("mmol_Sale"))
+            conc=total/vol
+            if not np.isfinite(conc) or conc>1.35 or conc<0.003:
+                issues.append(f"Total precursor concentration ({conc:.3g} mol/L) is outside the central 98% of recorded syntheses (~0.003–1.32 mol/L).")
+                penalties.append(0.8)
     except Exception:
         pass
 
